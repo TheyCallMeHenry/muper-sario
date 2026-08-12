@@ -1,6 +1,7 @@
 # Research Notes — Muper Sario 2.0
 
 > Curated from v1 research + v2 validation (2026-08-12)  
+> **Live:** https://theycallmehenry.github.io/muper-sario/  
 > Full v1 log: `D:\Apps\Laguna-S-2.1-MuperSario\docs\RESEARCH-FINDINGS.md`  
 > QA details: [`QA-FINDINGS.md`](QA-FINDINGS.md) · Architecture: [`DESIGN.md`](../DESIGN.md)
 
@@ -50,8 +51,8 @@ Cap = walkable platform. Sides = solid wall. No damage on contact.
 **Determinations:**
 
 1. **O-5 / D-004 reclassification:** “Can’t reach pipe” was collision + placement, not jump height.
-2. **v1 variable jump bug:** Extra gravity while held shortened rise to ~74 px; v2 uses early-release cut (`vy *= 0.5`).
-3. **Phase 5:** Jump raised from −12 to **−12.5** for pipe clearance margin.
+2. **v1 variable jump bug:** Extra gravity while held shortened rise to ~74 px; v2 Phase 4 used `vy *= 0.5` on release — **superseded Phase 7** by tier rise/fall gravity when jump released.
+3. **Phase 5:** Jump raised from −12 to **−12.5** for pipe clearance margin (~130 px apex tier 0).
 
 SMB note: NTSC SMB1 jump vertical force varies slightly by horizontal speed at takeoff ([SMBpedia](https://simplistic6502.github.io/smb1_tll/smbpedia_movement.html)); v2 uses tiered rise/fall gravity (not initial vy) so walk-jump apex stays ~130 px while run jumps get a flatter arc.
 
@@ -126,7 +127,7 @@ Source: [SMBpedia Movement](https://simplistic6502.github.io/smb1_tll/smbpedia_m
 
 ---
 
-## Scoring (Phase 6 determination)
+## Scoring (Phase 7 — updated 2026-08-12 PM)
 
 | Source | Points |
 |--------|--------|
@@ -155,7 +156,9 @@ Pits:                1680–1820 (140 px), 3480–3600 (120 px)
 Pipe top:            y = 380 (height 120 px)
 Pipe positions (11): 520, 720, 1180, 1380, 2080, 2280, 2680, 2880, 3080, 3920, 4120
 Coins:               25 positions (see levelData.js)
-Bubas (6):           see levelData.js patrol ranges
+Bubas (6):           [280,200–460,→] [920,760–1080,←] [1620,1480–1660,→]
+                     [2420,2320–2620,←] [3260,3120–3420,→] [3780,3640–3880,←]
+Par time:            90 s (time bonus multiplier on level win)
 Camera offset:       player at 35% from left (CAMERA_PLAYER_OFFSET)
 ```
 
@@ -165,13 +168,14 @@ Parallax factors: mountains **0.1**, clouds **0.25**, forests **0.5**, ground **
 
 ## Update order (implemented)
 
+See [`DESIGN.md`](../DESIGN.md) for authoritative frame order. Summary:
+
 ```
-input → updatePhysics → onGround = false
-      → buba.update → pipe collisions → buba–player collisions
-      → coin collisions → fall-death → ground snap → ceiling clamp
-      → updateCamera → level-complete check
-      → updateAnimation → render (background/ground with cameraX; entities translated)
+updatePhysics → onGround=false → buba.update → pipe → buba-player → coins
+→ fall-death → ground snap → grantCoyoteTime on ledge leave → animation → camera → win check
 ```
+
+Coyote refresh while grounded uses `COYOTE_TIME` or `COYOTE_TIME_PLATFORM` via `lastGroundKind`.
 
 ---
 
@@ -207,7 +211,9 @@ Implementation: `InputManager.drainKeyPresses()` — not held-key polling.
 | API | `HTMLAudioElement` with `loop: true` |
 | Fallback | Procedural chord loop via Web Audio |
 | Mute | Pause element + master gain 0; resume on unmute |
-| IDM | Exclude `localhost:38473` if downloads intercepted |
+| IDM | Exclude `localhost:38473` if downloads intercepted locally |
+
+**Pages (2026-08-12):** `background.wav` committed; loops on https://theycallmehenry.github.io/muper-sario/
 
 ---
 
@@ -265,10 +271,14 @@ Life loss when `player.y + player.height > CANVAS_HEIGHT` (600). Pits (missing g
 
 ---
 
-## Level completion (Phase 6)
+## Level completion
 
 Trigger: `player.x + player.width >= LEVEL_1.finishX` (4720).
 
-Flow: stop gameplay → LEVEL COMPLETE overlay → name entry → `Storage.saveScore()` → HighScoresScene.
+Flow:
 
-Same name-entry UX as game over; `levelComplete` flag changes headline text.
+1. `completeLevel()` — compute `timeMultiplier`, `finalScore = round(base × mult)`, `game.setScore(finalScore)`
+2. Overlay: LEVEL COMPLETE, TIME, BASE × multiplier, FINAL SCORE
+3. Name entry → `Storage.saveScore(finalScore, initials)` → HighScoresScene
+
+Game over uses same name-entry UX but saves **base score** only (no time modifier).

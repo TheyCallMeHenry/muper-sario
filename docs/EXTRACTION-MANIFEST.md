@@ -3,7 +3,7 @@
 > **Purpose:** Surgical copy vs rewrite checklist for greenfield extraction  
 > **Source:** `D:\Apps\Laguna-S-2.1-MuperSario` (read-only)  
 > **Target:** `D:\Apps\Muper_Sario_2.0`  
-> **Updated:** 2026-08-12 — Phases 0–7 complete · deployed to GitHub Pages
+> **Updated:** 2026-08-12 — Phases 0–7 complete · deployed · docs synced
 
 Execute in order. **Do not copy** files marked REWRITE.
 

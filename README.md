@@ -1,10 +1,10 @@
 # Muper Sario 2.0
 
-Greenfield rebuild of **Muper Sario** — Super Mario Bros.–inspired HTML5 canvas platformer with procedural sprites/SFX, optional looping `.wav` BGM, and side-scrolling level design.
+Greenfield rebuild of **Muper Sario** — Super Mario Bros.–inspired HTML5 canvas platformer with procedural sprites/SFX, looping `.wav` BGM, and side-scrolling level design.
 
 Extracts what worked in v1 and rewrites the gameplay layer that caused persistent bugs (spawn lifecycle, one-way platform collision, dual storage).
 
-**Status (2026-08-12):** Phases 0–6 complete. **Live on GitHub Pages.** SMB-inspired run+jump physics, extended coyote on pipe caps, coin + stomp scoring, time bonus on level win.
+**Status (2026-08-12):** Phases 0–7 + GitHub Pages deploy complete. **Live:** https://theycallmehenry.github.io/muper-sario/
 
 | | Local | Live |
 |---|-------|------|
@@ -79,7 +79,7 @@ All design decisions: [`DESIGN.md`](DESIGN.md)
 - One-way pipes: 76 px cap / 60 px body hitboxes
 - **20** ES6 modules — no bundler
 - Storage: `muperSario2Scores` (leaderboard), `muperSario2Muted` (audio)
-- BGM: `assets/music/background.wav` (optional; procedural fallback)
+- BGM: `assets/music/background.wav` (committed; procedural fallback if load fails)
 - Menu UI: `UiText.js` panels + stroked text
 
 ---
@@ -90,8 +90,8 @@ All design decisions: [`DESIGN.md`](DESIGN.md)
 Muper_Sario_2.0/
 ├── DESIGN.md · AGENTS.md · SESSION-HANDOFF.md
 ├── index.html · test.html
-├── docs/          # PROGRESS, QA, RESEARCH, MANIFEST, V1-PITFALLS
-├── assets/music/  # optional background.wav
+├── docs/          # DOC-INDEX, PROGRESS, QA, RESEARCH, MANIFEST, V1-PITFALLS
+├── assets/music/  # background.wav (BGM, committed)
 ├── src/           # 20 JS modules
 └── launch.bat / launch.sh
 ```
@@ -112,6 +112,7 @@ http://localhost:38473/test.html — expect **20 passed, 0 failed**.
 
 | Doc | Purpose |
 |-----|---------|
+| [`docs/DOC-INDEX.md`](docs/DOC-INDEX.md) | **Master index** — all docs + locked determinations |
 | [`DESIGN.md`](DESIGN.md) | Locked architecture |
 | [`SESSION-HANDOFF.md`](SESSION-HANDOFF.md) | Phase status, commands |
 | [`docs/PROGRESS.md`](docs/PROGRESS.md) | Task tracker + module inventory |

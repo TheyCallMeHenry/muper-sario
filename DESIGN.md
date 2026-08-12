@@ -1,6 +1,6 @@
 # DESIGN.md — Muper Sario 2.0
 
-> **Status:** Locked for v2 greenfield (2026-08-12, Phase 6 side-scroll)  
+> **Status:** Locked for v2 greenfield (2026-08-12, Phases 0–7 + deploy)  
 > **Supersedes:** Static-screen model (Phase 5); v1 Flappy-style spawn
 
 This document is the **single source of truth** for architecture. Do not implement features that contradict it without updating this file first.
@@ -19,7 +19,7 @@ This document is the **single source of truth** for architecture. Do not impleme
 | Level completion | **Reach finish flag** | Crossing `finishX` triggers win flow → name entry → leaderboard |
 | Scoring (base) | **1 pt per coin + 1 pt per Buba stomp** | Accumulated during level |
 | Scoring (final) | **Base × time multiplier** | On level win only: `clamp(parTime / elapsed, 0.5, 2.0)` |
-| Art / audio | **Procedural sprites** + optional `.wav` BGM | SFX procedural; `assets/music/background.wav` loops when present |
+| Art / audio | **Procedural sprites** + `.wav` BGM | SFX procedural; `assets/music/background.wav` loops (committed) |
 | Modules | **ES6 static imports** | No bundler unless explicitly added later |
 | Storage | **Single leaderboard API** | `Storage.js` → `localStorage` key `muperSario2Scores` |
 | Audio mute | **HUD Mute button** | Pauses/resumes BGM + silences SFX; persists `muperSario2Muted` |
@@ -84,16 +84,56 @@ Source: [SMBpedia Movement](https://simplistic6502.github.io/smb1_tll/smbpedia_m
 
 ---
 
-## Update order (locked)
+## Scoring (locked)
 
-Per frame in gameplay scene:
+### Base score (during level)
+
+| Source | Points |
+|--------|--------|
+| Coin | +1 |
+| Buba stomp | +1 |
+| Pipe / flag | 0 |
+
+### Final score (level win only)
+
+Implemented in `GameScene.completeLevel()` via `MathUtils.computeTimeScoreMultiplier()`:
 
 ```
-input → player.updatePhysics() → onGround = false
-      → buba.update() → pipe collisions → buba–player collisions
-      → coin collisions → fall-death (feet > canvas height)
-      → ground snap → ceiling clamp
-      → player.updateAnimation() → render
+multiplier = clamp(LEVEL_1.parTimeSeconds / levelElapsed, TIME_SCORE_MIN_MULT, TIME_SCORE_MAX_MULT)
+finalScore = round(baseScore × multiplier)
+```
+
+| Constant | Value |
+|----------|-------|
+| `parTimeSeconds` | 90 (level 1) |
+| `TIME_SCORE_MIN_MULT` | 0.5 |
+| `TIME_SCORE_MAX_MULT` | 2.0 |
+
+Game over saves `baseScore` unchanged. Leaderboard stores whichever score is saved at name entry.
+
+Level complete overlay shows: TIME, BASE × multiplier, FINAL SCORE.
+
+---
+
+## Update order (locked)
+
+Per frame in `GameScene.update()` while alive:
+
+```
+invincibility tick → levelElapsed += dt
+→ player.updatePhysics() → player.onGround = false
+→ buba.update()
+→ pipe collisions (setGroundContact on cap land)
+→ buba–player collisions (stomp adds SCORE_PER_BUBA)
+→ coin collisions (SCORE_PER_COIN)
+→ fall-death if feet > canvas height
+→ ground snap (setGroundContact on ground land)
+→ if wasOnGround && !onGround → player.grantCoyoteTime()
+→ wasOnGround = player.onGround
+→ ceiling clamp
+→ player.updateAnimation() → updateCamera()
+→ level-complete if player.x + width >= finishX
+→ render
 ```
 
 **Never** reset `onGround` before `updatePhysics()` (breaks coyote/jump) or before `updateAnimation()` (D-019).
@@ -129,7 +169,7 @@ input → player.updatePhysics() → onGround = false
 
 Buba patrol ranges must stay clear of adjacent pipe **body** bounds. Camera offset: player at 35% from left edge of viewport.
 
-### Name entry (game over)
+### Name entry (game over and level complete)
 
 | Input | Action |
 |-------|--------|
@@ -219,14 +259,15 @@ Do not patch v1 for v2 features. Copy proven modules per [`docs/EXTRACTION-MANIF
 | Path | `/` (repository root) |
 | Build | Static — no bundler; ES modules over HTTPS |
 | Cache bust | `index.html` → `GameEngine.js?v=3` |
-| Optional asset | `assets/music/background.wav` for BGM on Pages |
+| BGM asset | `assets/music/background.wav` (committed; loops on Pages) |
+| Module test | `/test.html` — 20 import smoke tests |
 
 ---
 
-## Out of scope (v2.0 initial)
+## Out of scope (future)
 
 - Touch / mouse controls
 - Bundler / npm build step
-- Multiple levels / level editor
+- Multiple levels / level editor (LEVEL_2+)
 - Multiplayer
-- GitHub Pages deploy (until user requests — see SESSION-HANDOFF)
+- In-game elapsed-time HUD (timer tracked internally for scoring only)

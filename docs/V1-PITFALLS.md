@@ -82,6 +82,16 @@ Use as a pre-merge checklist for v2.
 - Name entry with pre-filled initials
 - KeyboardEvent.code mixed-case
 
+## v2-only discoveries (Phase 7)
+
+| Issue | Symptom | Fix |
+|-------|---------|-----|
+| No stomp score | User requirement | `SCORE_PER_BUBA: 1` |
+| Coyote tight on pipe caps | Run off pipe edge felt harsh | 0.15 s / 0.22 s + `grantCoyoteTime()` |
+| No speed scoring | Win score = collectibles only | Time multiplier on level complete |
+| Walk jump = run jump in air | Missing SMB feel | SMB run+jump tiers in `Player.js` |
+| Variable jump `vy *= 0.5` | Simplified vs SMB arcs | Tier rise/fall gravity by takeoff speed |
+
 ---
 
 ## Still do not

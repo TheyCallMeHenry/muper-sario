@@ -1,7 +1,7 @@
 # Muper Sario 2.0 — Progress Tracker
 
-> **Last Updated:** 2026-08-12 (PM — deploy)  
-> **Manifest:** [`EXTRACTION-MANIFEST.md`](EXTRACTION-MANIFEST.md)  
+> **Last Updated:** 2026-08-12 (PM — full doc sync)  
+> **Index:** [`DOC-INDEX.md`](DOC-INDEX.md) · **Manifest:** [`EXTRACTION-MANIFEST.md`](EXTRACTION-MANIFEST.md)  
 > **QA report:** [`QA-FINDINGS.md`](QA-FINDINGS.md)  
 > **Live:** https://theycallmehenry.github.io/muper-sario/
 
@@ -52,7 +52,8 @@
 - [x] GitHub Pages from `main` / root (existing config)
 - [x] ES module paths verified (no bundler)
 - [x] Cache bust `GameEngine.js?v=3`
-- [ ] Optional: commit `assets/music/background.wav` for BGM on Pages
+- [x] `assets/music/background.wav` committed for BGM on Pages
+- [x] Live test.html 20/20 on Pages
 
 ---
 
