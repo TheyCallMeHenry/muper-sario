@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Muper Sario 2.0 — Module Test</title>
+</head>
+<body>
+  <h1>Muper Sario 2.0 — Module Test</h1>
+  <div id="test-results"><p>Running tests...</p></div>
+  <script type="module">
+    const results = document.getElementById('test-results');
+    const tests = [
+      { name: 'gameConfig.js', path: './src/config/gameConfig.js' },
+      { name: 'levelData.js', path: './src/config/levelData.js' },
+      { name: 'MathUtils.js', path: './src/utils/MathUtils.js' },
+      { name: 'UiText.js', path: './src/utils/UiText.js' },
+      { name: 'ProceduralGen.js', path: './src/utils/ProceduralGen.js' },
+      { name: 'Storage.js', path: './src/utils/Storage.js' },
+      { name: 'Renderer.js', path: './src/core/Renderer.js' },
+      { name: 'InputManager.js', path: './src/core/InputManager.js' },
+      { name: 'AudioManager.js', path: './src/core/AudioManager.js' },
+      { name: 'SceneManager.js', path: './src/core/SceneManager.js' },
+      { name: 'GameEngine.js', path: './src/core/GameEngine.js' },
+      { name: 'Player.js', path: './src/entities/Player.js' },
+      { name: 'Pipe.js', path: './src/entities/Pipe.js' },
+      { name: 'Buba.js', path: './src/entities/Buba.js' },
+      { name: 'Ground.js', path: './src/entities/Ground.js' },
+      { name: 'Background.js', path: './src/entities/Background.js' },
+      { name: 'Coin.js', path: './src/entities/Coin.js' },
+      { name: 'TitleScene.js', path: './src/scenes/TitleScene.js' },
+      { name: 'GameScene.js', path: './src/scenes/GameScene.js' },
+      { name: 'HighScoresScene.js', path: './src/scenes/HighScoresScene.js' }
+    ];
+
+    let passed = 0;
+    let failed = 0;
+    results.innerHTML = '';
+
+    for (const test of tests) {
+      try {
+        await import(test.path);
+        results.innerHTML += `<p style="color:green">✅ ${test.name}</p>`;
+        passed++;
+      } catch (e) {
+        results.innerHTML += `<p style="color:red">❌ ${test.name}: ${e.message}</p>`;
+        failed++;
+      }
+    }
+
+    results.innerHTML += `<p><strong>${passed} passed, ${failed} failed</strong></p>`;
+    if (failed === 0) {
+      results.innerHTML += `<p><a href="./index.html">Go to game</a></p>`;
+    }
+  </script>
+</body>
+</html>
