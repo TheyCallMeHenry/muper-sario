@@ -4,7 +4,7 @@ Greenfield rebuild of **Muper Sario** — Super Mario Bros.–inspired HTML5 can
 
 Extracts what worked in v1 and rewrites the gameplay layer that caused persistent bugs (spawn lifecycle, one-way platform collision, dual storage).
 
-**Status (2026-08-12):** Phases 0–10 complete. **Phase 10b** research complete (parallax opacity + par-time); **code fixes pending**. **Live:** https://theycallmehenry.github.io/muper-sario/
+**Status (2026-08-12):** Phases 0–10 complete. **Phase 10b** research complete; generic tree underlay **reverted**; per-style silhouettes + par-time hybrid **pending**. **Live:** https://theycallmehenry.github.io/muper-sario/
 
 | | Local | Live |
 |---|-------|------|
@@ -30,7 +30,7 @@ cd D:\Apps\Muper_Sario_2.0
 
 v1 archive uses port **38472** — do not use that port for v2.
 
-After code changes: **Ctrl+F5** hard refresh. Entry cache bust: `GameEngine.js?v=4` in `index.html`.
+After code changes: **Ctrl+F5** hard refresh. Entry cache bust: `GameEngine.js?v=5` in `index.html`.
 
 ---
 
@@ -64,7 +64,7 @@ After code changes: **Ctrl+F5** hard refresh. Entry cache bust: `GameEngine.js?v
 | Coins | **20 px** above support; generator validates **≥ 48 px** from pipe caps |
 | Legacy layout | Hand-placed `LEVEL_1` in `levelData.js` (reference only — not used at runtime) |
 | Player sprite | Procedural; inverted palette; vertical leg walk cycle |
-| Parallax art | Low-poly mountains (0.1×); flat vector trees (0.5×) — **tree sprite opacity fix open** |
+| Parallax art | Low-poly mountains (0.1×); flat vector trees (0.5×); compositor α=1; generic underlay reverted |
 | Buba stomp | Two-pass collision; expanded stomp band; frame-start descending check |
 
 Game over saves **base score only** (no time modifier). Use `?seed=N` to reproduce a layout for debugging (chunk sequence logged to console on run start).

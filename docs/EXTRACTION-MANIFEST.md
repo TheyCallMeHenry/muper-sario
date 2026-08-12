@@ -3,7 +3,7 @@
 > **Purpose:** Surgical copy vs rewrite checklist for greenfield extraction  
 > **Source:** `D:\Apps\Laguna-S-2.1-MuperSario` (read-only)  
 > **Target:** `D:\Apps\Muper_Sario_2.0`  
-> **Updated:** 2026-08-12 — Phases 0–10 complete · Phase 10b research · docs synced
+> **Updated:** 2026-08-12 — Phases 0–10 complete · Phase 10b research + underlay revert · docs synced
 
 Execute in order. **Do not copy** files marked REWRITE.
 
@@ -48,7 +48,7 @@ Integration, QA, polish, side-scroll level, UX, mute, Left Shift run — see [`P
 
 - GitHub: https://github.com/TheyCallMeHenry/muper-sario
 - Pages: https://theycallmehenry.github.io/muper-sario/ (branch `main`, path `/`)
-- Cache bust: `GameEngine.js?v=4`
+- Cache bust: `GameEngine.js?v=5`
 
 ---
 
@@ -69,7 +69,7 @@ Integration, QA, polish, side-scroll level, UX, mute, Left Shift run — see [`P
 | Change | Module |
 |--------|--------|
 | Vertical leg walk cycle | `ProceduralGen.generatePlayer()` |
-| Opaque parallax trees (compositor) | `Background.js` — sprite bake fix pending Phase 10b |
+| Opaque parallax trees (compositor) | `Background.js` — generic underlay reverted Phase 10b |
 | `Block.js` entity | `src/entities/Block.js` (new) |
 | `generateBlock()` | `ProceduralGen.js` |
 | Floating platforms in level | `levelData.js`, `GameScene.js` |
@@ -111,14 +111,14 @@ Integration, QA, polish, side-scroll level, UX, mute, Left Shift run — see [`P
 |--------|----------------|
 | Web research + root-cause analysis | `RESEARCH-NOTES.md` §10b |
 | QA bugs #33–35, troubleshooting log | `QA-FINDINGS.md` |
-| Interim underlay attempt (**reject before deploy**) | `ProceduralGen.js` — revert pending |
+| Interim underlay attempt (**rejected**) | `ProceduralGen.js` — **reverted 2026-08-12** |
 | TitleScene compositor alpha fix | `TitleScene.js` |
 | Background save/restore | `Background.js` |
-| Cache bust v=4 | `index.html` |
+| Cache bust v=5 | `index.html` |
 | Hybrid par-time spec (not coded) | `RESEARCH-NOTES.md`, `DESIGN.md` |
-| Full doc sync | all project markdown |
+| Full doc sync | all project markdown (post-revert pass) |
 
-**Pending implementation:** per-style tree silhouettes; revert underlay/flatten; ground-path `parTimeSeconds`.
+**Pending implementation:** per-style tree silhouettes (if parallax bleed returns); ground-path `parTimeSeconds`.
 
 ---
 

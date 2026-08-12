@@ -221,7 +221,7 @@ Uses `InputManager.drainKeyPresses()` one-shot queue — not held-key polling.
 | Sky | 0 (fixed) | Gradient + sun in viewport space |
 | Mountains | 0.1 | Low-poly faceted sprites; unified silhouette + snow facets |
 | Clouds | 0.25 | FlappyBird puff model |
-| Forests / trees | 0.5 | 10 flat vector styles; compositor **alpha = 1**; sprite bake must use solid `#RRGGBB` silhouettes (see RESEARCH-NOTES §10b — **open fix**) |
+| Forests / trees | 0.5 | 10 flat vector styles; compositor **alpha = 1**; generic underlay **reverted** (Phase 10b); per-style solid silhouettes if parallax bleed returns — RESEARCH-NOTES §10b |
 | Ground texture | 1.0 | Segmented solid tiles scroll with camera |
 | Gameplay entities | 1.0 | `ctx.translate(−cameraX)` |
 
@@ -306,9 +306,9 @@ Do not patch v1 for v2 features. Copy proven modules per [`docs/EXTRACTION-MANIF
 | Branch | `main` |
 | Path | `/` (repository root) |
 | Build | Static — no bundler; ES modules over HTTPS |
-| Cache bust | `index.html` → `GameEngine.js?v=4` |
+| Cache bust | `index.html` → `GameEngine.js?v=5` |
 | BGM asset | `assets/music/background.wav` (committed; loops on Pages) |
-| Module test | `/test.html` — 21 import smoke tests |
+| Module test | `/test.html` — 23 import smoke tests |
 
 ---
 

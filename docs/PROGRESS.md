@@ -1,6 +1,6 @@
 # Muper Sario 2.0 — Progress Tracker
 
-> **Last Updated:** 2026-08-12 late evening (Phase 10b research + doc sync)  
+> **Last Updated:** 2026-08-12 late evening (Phase 10b underlay revert + full doc sync)  
 > **Index:** [`DOC-INDEX.md`](DOC-INDEX.md) · **Manifest:** [`EXTRACTION-MANIFEST.md`](EXTRACTION-MANIFEST.md)  
 > **QA report:** [`QA-FINDINGS.md`](QA-FINDINGS.md)  
 > **Live:** https://theycallmehenry.github.io/muper-sario/
@@ -24,20 +24,21 @@
 | **9** | **Level polish: legs, trees, blocks, coin platforms** | ✅ Complete (2026-08-12 evening) |
 | **9b** | **SMB scale: pipe height, coin height/spacing** | ✅ Complete (2026-08-12 evening) |
 | **10** | **Procedural rogue-lite levels (26 chunks, generator, seed URL)** | ✅ Complete (2026-08-12 evening) |
-| **10b** | **Parallax opacity + par-time research; doc sync** | 🔬 Research complete · fixes pending |
+| **10b** | **Parallax opacity + par-time research; underlay revert; doc sync** | 🔬 Research complete · underlay reverted · silhouettes/par-time pending |
 
 ---
 
-## Phase 10b — Research (2026-08-12 late evening)
+## Phase 10b — Research + underlay revert (2026-08-12 late evening)
 
 - [x] Verify date before web research (2026-08-12)
 - [x] Web research — canvas compositor vs sprite alpha, parallax depth, flat-vector silhouettes
 - [x] Root-cause analysis — tree canopy gaps, TitleScene compositor alpha, anti-aliased fringe
 - [x] Troubleshooting log — underlay attempt documented as **rejected**
 - [x] Dynamic par-time analysis — user proposal + recommended hybrid formula
-- [x] Full project doc sync (17 markdown files)
-- [ ] **Revert** `drawTreeOpaqueUnderlay` / `flattenTreeAlpha` in `ProceduralGen.js`
-- [ ] **Implement** per-style solid tree silhouettes (RESEARCH-NOTES §10b)
+- [x] **Revert** `drawTreeOpaqueUnderlay` / `flattenTreeAlpha` in `ProceduralGen.js` (user request 2026-08-12)
+- [x] Cache bust `GameEngine.js?v=5`
+- [x] Full project doc sync (17 markdown files — post-revert pass)
+- [ ] **Implement** per-style solid tree silhouettes if parallax bleed persists (RESEARCH-NOTES §10b)
 - [ ] **Implement** ground-path hybrid `parTimeSeconds` in `LevelGenerator.js`
 
 ---
@@ -70,7 +71,7 @@
 ## Phase 9 — Level polish (complete 2026-08-12 evening)
 
 - [x] **Player legs** — vertical walk-cycle lift (no horizontal splay) in `generatePlayer()`
-- [x] **Trees** — compositor `alpha: 1` in `Background.js` (Phase 9); **sprite bake fix OPEN** (Phase 10b)
+- [x] **Trees** — compositor `alpha: 1` in `Background.js` (Phase 9); generic underlay **reverted** (Phase 10b)
 - [x] **`Block.js`** — 32×32 SMB brick; one-way top collision
 - [x] **`generateBlock()`** in ProceduralGen
 - [x] **11 floating blocks** under elevated coins in `levelData.js`
@@ -110,7 +111,7 @@
 
 ## Phase 4b — Deploy (complete 2026-08-12 PM)
 
-- [x] Cache bust `GameEngine.js?v=4`
+- [x] Cache bust `GameEngine.js?v=5`
 - [x] `background.wav` committed; test.html on Pages
 
 ---
@@ -125,7 +126,7 @@
 | `src/utils/LevelGenerator.js` | Seeded assembly, validation, `getRunSeedFromUrl()` |
 | `src/utils/MathUtils.js` | clamp, time-score multiplier, formatTime |
 | `src/utils/UiText.js` | Canvas menu panels + stroked text |
-| `src/utils/ProceduralGen.js` | Sprites; trees (10 styles — opacity fix pending); mountains; blocks; leg cycle |
+| `src/utils/ProceduralGen.js` | Sprites; trees (10 styles; underlay reverted); mountains; blocks; leg cycle |
 | `src/utils/Storage.js` | `muperSario2Scores` leaderboard |
 | `src/core/Renderer.js` | Canvas clear + dispatch |
 | `src/core/InputManager.js` | Keyboard; Left Shift run; name-entry queue |
@@ -159,4 +160,4 @@
 | — | Flat vector trees, low-poly mountains, Buba stomp hardening |
 | — | Floating blocks, SMB pipe/coin scale, leg animation, opaque trees |
 | — | Procedural chunk levels, LevelGenerator, `?seed=` reproducible runs |
-| — | Phase 10b: parallax opacity + par-time research (fixes pending) |
+| — | Phase 10b: parallax opacity research; underlay reverted; par-time hybrid pending |

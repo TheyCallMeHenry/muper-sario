@@ -21,7 +21,7 @@ Drawable and collidable game objects.
 | Clouds | 0.25 | 0.85 (in drawCloudPuffs) | Intentionally soft |
 | Forests | 0.5 | **1** | Baked sprites from `generateTree()` |
 
-Uses `ctx.save()` / `restore()` per parallax element. **Tree sprite bake** must be fully opaque inside canopy (Phase 10b — see RESEARCH-NOTES).
+Uses `ctx.save()` / `restore()` per parallax element. Tree sprites: compositor α=1; generic underlay **reverted** (Phase 10b). Per-style solid silhouettes if parallax bleed recurs — see RESEARCH-NOTES §10b.
 
 ## Buba collision (see DESIGN.md)
 

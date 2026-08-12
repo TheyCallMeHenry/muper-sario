@@ -144,8 +144,8 @@ Use as a pre-merge checklist for v2.
 | Issue | Symptom | Do / Don't |
 |-------|---------|------------|
 | Compositor vs sprite alpha confusion | Setting `globalAlpha=1` but canopies still look transparent | Fix **baked canvas holes**, not just draw alpha |
-| Generic tree underlay | Dark green ovals visible behind style-specific canopies | **Do not** use one-size oval; use **per-style silhouettes** |
-| `flattenTreeAlpha` band-aid | Fringe opaque; puff gaps remain | Revert; fix art at source |
+| Generic tree underlay | Dark green ovals visible behind style-specific canopies | **Do not** use one-size oval; **reverted 2026-08-12**; use **per-style silhouettes** if bleed returns |
+| `flattenTreeAlpha` band-aid | Fringe opaque; puff gaps remain | **Reverted** with underlay; fix art at source if needed |
 | TitleScene compositor alpha | Mountains/trees drawn at 0.5–0.9 on menu | Draw at **1.0** |
 | `rgba()` in tree bake | Semi-transparent highlight dots | Use solid `#RRGGBB` only for opaque parallax assets |
 | Fixed par after PCG (heuristic) | Chunk-count formula may mis-rank runs | Plan hybrid ground-path par (RESEARCH-NOTES §10b) |

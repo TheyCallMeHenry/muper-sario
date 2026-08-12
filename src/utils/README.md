@@ -16,7 +16,7 @@ No gameplay constants here — use `config/`.
 
 | Generator | Notes |
 |-----------|-------|
-| `generateTree()` | 10 flat vector styles (`TREE_STYLES`); seed-picked; **opacity fix pending** (Phase 10b) |
+| `generateTree()` | 10 flat vector styles (`TREE_STYLES`); seed-picked; generic underlay **reverted** (Phase 10b) |
 | `generateMountain()` | Low-poly facets; unified silhouette; solid `#RRGGBB`; compositor α=1 |
 | `generateBlock()` | 32×32 SMB orange brick (Phase 9) |
 | `generateCloud()` / `makeCloudPuffs()` | FlappyBird `Sky.js` algorithm; semi-transparent **by design** |
@@ -24,11 +24,18 @@ No gameplay constants here — use `config/`.
 | `generatePipe()`, `generateCoin()`, `generateBuba()` | Gameplay entities |
 | `generateGround()` | Grass + dirt texture tiles |
 
-### Tree opacity (Phase 10b — open)
+### Tree opacity (Phase 10b)
 
-- **Do not ship:** `drawTreeOpaqueUnderlay()`, `flattenTreeAlpha()` — rejected generic underlay approach.
-- **Correct fix:** Per-style solid canopy silhouettes; no `rgba()` in tree bake.
-- See [`docs/RESEARCH-NOTES.md`](../../docs/RESEARCH-NOTES.md) § Phase 10b.
+| Item | Status |
+|------|--------|
+| Compositor `alpha: 1` in `Background.js` / `TitleScene.js` | ✅ |
+| Generic `drawTreeOpaqueUnderlay()` | ❌ **Removed** — rejected approach |
+| `flattenTreeAlpha()` post-pass | ❌ **Removed** — band-aid only |
+| Per-style solid canopy silhouettes | Pending **if** parallax bleed recurs |
+
+- **Do not reintroduce** one-size green oval underlays.
+- **Correct fix (if needed):** Per-style solid silhouettes; no `rgba()` in tree bake.
+- See [`docs/RESEARCH-NOTES.md`](../../docs/RESEARCH-NOTES.md) § Phase 10b · [`docs/QA-FINDINGS.md`](../../docs/QA-FINDINGS.md) § #33–34.
 
 ## LevelGenerator.js (Phase 10)
 

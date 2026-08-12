@@ -36,7 +36,7 @@ These files informed procedural art generation. They are **not** loaded at runti
 
 When revising procedural art, compare against these references and update `ProceduralGen.js` — do not swap in raster sprites unless DESIGN.md is updated first.
 
-**Phase 10b note:** Tree opacity requires per-style solid silhouettes in `generateTree()` — not generic backing ovals. See [`docs/RESEARCH-NOTES.md`](../docs/RESEARCH-NOTES.md) § Phase 10b.
+**Phase 10b note:** Generic tree underlay reverted in `generateTree()` (2026-08-12). If parallax bleed recurs, use per-style solid silhouettes — not backing ovals. See [`docs/RESEARCH-NOTES.md`](../docs/RESEARCH-NOTES.md) § Phase 10b.
 
 ## GitHub Pages
 

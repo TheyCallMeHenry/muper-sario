@@ -55,7 +55,7 @@ Reproducible run: http://localhost:38473/?seed=42
 
 Live test: https://theycallmehenry.github.io/muper-sario/test.html
 
-After edits: **Ctrl+F5**. Bump `GameEngine.js?v=` in `index.html` when changing entry script (currently **v=4**).
+After edits: **Ctrl+F5**. Bump `GameEngine.js?v=` in `index.html` when changing entry script (currently **v=5**).
 
 ## Documentation index
 

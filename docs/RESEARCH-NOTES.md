@@ -1,6 +1,6 @@
 # Research Notes — Muper Sario 2.0
 
-> Curated from v1 research + v2 validation (2026-08-12, updated evening Phases 8–10)  
+> Curated from v1 research + v2 validation (2026-08-12, updated late evening Phases 8–10b)  
 > **Live:** https://theycallmehenry.github.io/muper-sario/  
 > Full v1 log: `D:\Apps\Laguna-S-2.1-MuperSario\docs\RESEARCH-FINDINGS.md`  
 > QA details: [`QA-FINDINGS.md`](QA-FINDINGS.md) · Architecture: [`DESIGN.md`](../DESIGN.md)
@@ -219,7 +219,7 @@ Camera offset:       player at 35% from left (CAMERA_PLAYER_OFFSET)
 Jump reach:          ~130 px apex from ground — clears 96 px pipe/platform height
 ```
 
-Parallax factors: mountains **0.1**, clouds **0.25** (soft), forests **0.5** (compositor α=1; sprite bake fix OPEN §10b), ground **1.0**.
+Parallax factors: mountains **0.1**, clouds **0.25** (soft), forests **0.5** (compositor α=1; generic underlay reverted §10b), ground **1.0**.
 
 ---
 
@@ -336,7 +336,7 @@ High score row layout uses panel-relative `innerLeft` / `innerRight` padding —
 
 Seeded random picks one style per `generateTree()` call. Used in `Background.generateForests()` and `TitleScene`. Compositor forest layer uses **`alpha: 1`**.
 
-**Open issue (Phase 10b):** User still reports mountains visible through canopies. Phase 9 compositor fix alone insufficient. Interim `drawTreeOpaqueUnderlay()` + `flattenTreeAlpha()` in code — **rejected** (generic green ovals visible). Proper fix: per-style solid silhouettes, no `rgba()` in bake — see § Phase 10b parallax opacity research.
+**Phase 10b (2026-08-12):** Generic `drawTreeOpaqueUnderlay()` + `flattenTreeAlpha()` attempted to block parallax bleed-through — **rejected** (visible dark-green ovals behind every style). **Reverted same day** per user request. Sprite bake may still have canopy gaps on puff/scallop styles; correct fix if bleed recurs: per-style solid silhouettes, no `rgba()` in bake — see § Phase 10b parallax opacity research.
 
 ### Blocks (Phase 9)
 
@@ -467,7 +467,7 @@ From reference panorama analysis (image in `assets/examples/`):
 
 ## Phase 10b — Parallax opacity research (2026-08-12 late evening)
 
-> **Status:** Research complete · code fix **pending** (interim underlay hack in tree — **rejected**, must revert)  
+> **Status:** Research complete · underlay **reverted 2026-08-12** · per-style silhouettes pending **only if bleed recurs**  
 > **Date verified before research:** Wednesday, August 12, 2026 (system clock)
 
 User report: mountains still visible through tree canopies at `?seed=42` after Phase 9 `Background` alpha fix. Screenshot confirmed dark generic green ovals visible behind style-specific tree tops (undesirable).
@@ -516,12 +516,14 @@ Pixel test (browser, post-`flattenTreeAlpha`): painted pixels min alpha 255; int
 | 4 | **`flattenTreeAlpha()`** — force any painted pixel to alpha 255 | Fixes fringe only | Band-aid; does not fix holes without underlay |
 | 5 | Remove `TitleScene` mountain compositor alpha | Mountains opaque on title | Correct compositor fix |
 | 6 | Bump `GameEngine.js?v=4` | Module cache bust | Required for local verification |
+| 7 | **Revert** underlay + flatten (user request) | Green ovals removed; style tops preserved | ✅ **Shipped 2026-08-12** |
+| 8 | Bump `GameEngine.js?v=5` | Post-revert cache bust | Required for local verification |
 
-**Do not ship:** `drawTreeOpaqueUnderlay`, `flattenTreeAlpha` — revert before proper art fix.
+**Do not reintroduce:** `drawTreeOpaqueUnderlay`, `flattenTreeAlpha` — removed from codebase.
 
-### Correct fix (research consensus — not yet implemented)
+### Correct fix if parallax bleed recurs (not yet implemented)
 
-1. **Revert** generic underlay + flatten pass.
+1. ~~**Revert** generic underlay + flatten pass.~~ ✅ Done 2026-08-12.
 2. **Per-style solid silhouettes** — each style draws a **style-native** closed canopy path in its own shadow/dark green **before** decorative layers (same pattern as `fluffyOak` shadow scallops, `fillMountainRangeSilhouette` for mountains).
 3. **No `rgba()`** in tree/mountain bake — `#RRGGBB` fills/strokes only.
 4. **`globalAlpha = 1`** for entire bake; reset explicitly in `generateTree` / `generateMountain`.

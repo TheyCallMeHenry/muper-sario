@@ -1,6 +1,6 @@
 # Documentation Index — Muper Sario 2.0
 
-> **Last synced:** 2026-08-12 late evening (Phase 10b research + full doc sync)  
+> **Last synced:** 2026-08-12 late evening (Phase 10b underlay revert + full doc sync)  
 > **Live:** https://theycallmehenry.github.io/muper-sario/ · **Repo:** https://github.com/TheyCallMeHenry/muper-sario
 
 This index maps every project document to its role and lists locked determinations in one place.
@@ -39,7 +39,7 @@ This index maps every project document to its role and lists locked determinatio
 | Local port | **38473** (v1 = 38472) |
 | Modules | **23** ES6 files, no bundler |
 | Fixed timestep | 60 Hz (`GameEngine`) |
-| Cache bust | `GameEngine.js?v=4` |
+| Cache bust | `GameEngine.js?v=5` |
 
 ### Procedural level generation (Phase 10)
 
@@ -118,7 +118,7 @@ finalScore = round(baseScore × multiplier)
 
 | Asset | Generator | Style |
 |-------|-----------|-------|
-| Trees | `generateTree()` | 10 flat vector styles; compositor α=1; **sprite opacity OPEN** (§10b) |
+| Trees | `generateTree()` | 10 flat vector styles; compositor α=1; generic underlay **reverted**; per-style silhouettes if bleed returns (§10b) |
 | Mountains | `generateMountain()` | Low-poly facets; solid `#RRGGBB`; compositor α=1 |
 | Blocks | `generateBlock()` | SMB orange brick, 32×32 |
 | Clouds | `makeCloudPuffs()` | FlappyBird `Sky.js` model |
@@ -168,14 +168,14 @@ finalScore = round(baseScore × multiplier)
 | 9 | Vertical leg animation, opaque trees, Block entity, coin platforms |
 | 9b | SMB scale: pipes 96 px, coin height/spacing, layout retune |
 | **10** | **26 PCG chunks, LevelGenerator, rogue-lite runs, `?seed=` param** |
-| **10b** | **Parallax opacity + par-time research; interim tree underlay rejected** |
+| **10b** | **Parallax opacity + par-time research; underlay reverted; doc sync** |
 
 ### Open work (Phase 10b)
 
 | Item | Status | Doc |
 |------|--------|-----|
-| Tree sprite opacity (per-style silhouettes) | Pending code | RESEARCH-NOTES §10b, QA #33–34 |
-| Revert `drawTreeOpaqueUnderlay` / `flattenTreeAlpha` | Pending code | QA #34 |
+| Revert `drawTreeOpaqueUnderlay` / `flattenTreeAlpha` | ✅ Reverted 2026-08-12 | QA #34 |
+| Tree sprite opacity (per-style silhouettes) | Pending if bleed returns | RESEARCH-NOTES §10b, QA #33 |
 | Hybrid ground-path `parTimeSeconds` | Pending code | RESEARCH-NOTES § Dynamic par time, QA #35 |
 
 ---

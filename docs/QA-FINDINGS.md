@@ -248,30 +248,36 @@ node --input-type=module -e "import { generateValidatedLevel } from './src/utils
 | Date verified before web research | ✅ Wednesday, August 12, 2026 |
 | Root-cause analysis (compositor vs sprite alpha) | ✅ Documented |
 | Web research (MDN, Godot, FreePixel, canvas compositing) | ✅ Documented in RESEARCH-NOTES §10b |
-| Interim underlay + flattenTreeAlpha | ⚠️ Shipped in code · **rejected by user** — revert pending |
+| Interim underlay + flattenTreeAlpha | ⚠️ Attempted · **rejected by user** · **reverted 2026-08-12** |
 | TitleScene mountain/tree compositor alpha | ✅ Fixed (draw at alpha 1) |
 | Background save/restore per element | ✅ Shipped |
-| Cache bust `GameEngine.js?v=4` | ✅ Shipped |
+| Cache bust `GameEngine.js?v=5` | ✅ Shipped |
 | Dynamic par-time hybrid formula | 🔬 Researched · **not implemented** |
-| User manual test `?seed=42` (post-Phase 10) | ✅ Layout better; tree opacity still open |
+| User manual test `?seed=42` (post-Phase 10) | ✅ Layout verified |
+| User request: remove green oval underlay | ✅ Reverted in `ProceduralGen.generateTree()` |
+| Full doc sync (17 markdown files) | ✅ Complete (post-revert pass) |
 
 ### Bugs / issues
 
-#### 33. Semi-transparent trees persist after Phase 9 compositor fix
+#### 33. Semi-transparent trees / parallax bleed (partially addressed)
 
 **Symptom:** Mountains visible through tree canopies during gameplay and title backdrop; reads as semi-transparent foliage.  
 **Initial diagnosis (Phase 9):** `Background` forest draw used reduced alpha — fixed with `alpha: 1`.  
-**Re-test (Phase 10b):** Issue persists. User screenshot shows bleed-through and visible dark-green oval backings.  
+**Re-test (Phase 10b):** Sprite bake gaps persist on puff/scallop styles; user screenshot also showed dark-green oval backings from interim fix.  
 **Root cause:** (1) **Sprite pixel alpha** — gaps between puff/scallop circles in baked canvas; anti-aliased fringe pixels; (2) was also **TitleScene compositor alpha** on trees/mountains. Compositor-only fix insufficient.  
+**Interim attempt (#34):** Generic underlay blocked holes but looked wrong — reverted.  
 **Research:** See RESEARCH-NOTES § Phase 10b parallax opacity.  
-**Status:** **OPEN** — proper per-style silhouette fix pending; do not ship generic underlay.
+**Status:** **OPEN (conditional)** — per-style solid silhouettes **only if** bleed-through recurs after underlay revert; compositor hygiene complete.
 
-#### 34. Interim fix rejected — generic green oval underlay
+#### 34. Interim fix rejected — generic green oval underlay (reverted)
 
 **Attempt:** `drawTreeOpaqueUnderlay()` + `flattenTreeAlpha()` in `ProceduralGen.generateTree()`.  
 **Symptom:** Fully opaque dark-green ellipse visible behind each style’s distinct canopy colors/shapes — not acceptable art.  
-**Verdict:** **Rejected.** Revert before deploy. Correct approach: style-native solid silhouettes (same pattern as mountain `fillMountainRangeSilhouette`).  
-**Documented:** RESEARCH-NOTES §10b troubleshooting table.
+**Verdict:** **Rejected.** User explicitly requested removal of green round/oval background while preserving style-specific tree tops.  
+**Fix (2026-08-12):** Removed both helpers and their calls from `generateTree()`; deleted from `ProceduralGen.js`. Cache bust `v=5`.  
+**Long-term (if bleed returns):** Style-native solid silhouettes (same pattern as mountain `fillMountainRangeSilhouette`).  
+**Documented:** RESEARCH-NOTES §10b troubleshooting table.  
+**Status:** **FIXED (reverted)** — do not reintroduce generic underlay.
 
 #### 35. Par time heuristic vs procedural difficulty (research)
 
@@ -291,6 +297,17 @@ node --input-type=module -e "import { generateValidatedLevel } from './src/utils
 | 4 | `flattenTreeAlpha()` post-pass | Fringe → 255; holes remain without underlay |
 | 5 | TitleScene remove tree/mountain compositor alpha | Correct compositor hygiene |
 | 6 | `GameEngine.js?v=4` cache bust | Ensures module reload locally |
+| 7 | **Revert** underlay + flatten; delete helpers (user request) | Green ovals removed; style tops preserved |
+| 8 | `GameEngine.js?v=5` cache bust | Post-revert module reload |
+
+### Verification (post-revert)
+
+| Check | Result |
+|-------|--------|
+| `drawTreeOpaqueUnderlay` in served `ProceduralGen.js` | ✅ Absent |
+| `flattenTreeAlpha` in served `ProceduralGen.js` | ✅ Absent |
+| `node --check` all `src/**/*.js` | ✅ PASS |
+| Browser import test (`typeof drawTreeOpaqueUnderlay`) | ✅ `undefined` |
 
 ---
 
@@ -311,7 +328,7 @@ node --input-type=module -e "import { generateValidatedLevel } from './src/utils
 | Run | Left Shift; max 5.75; RunningTimer 10 frames |
 | Buba stomp | Defeat + bounce + **1 pt**; two-pass collision; expanded stomp band |
 | Buba side | Lose life (invincibility respected) |
-| Parallax trees | 10 flat vector styles at 0.5×; compositor **alpha = 1**; **sprite opacity fix OPEN** (§ Phase 10b) |
+| Parallax trees | 10 flat vector styles at 0.5×; compositor **alpha = 1**; generic underlay **reverted**; per-style silhouettes if bleed returns (§ Phase 10b) |
 | Floating blocks | SMB bricks; one-way top; in chunk definitions |
 | Pipes | 96 px tall (2× player); top y = 404 |
 | Coins | 20 px above support; generator validates ≥48 px from pipe caps |
@@ -325,4 +342,4 @@ node --input-type=module -e "import { generateValidatedLevel } from './src/utils
 
 ## Cache note
 
-`index.html` cache-busts `GameEngine.js?v=4`. Submodule edits require **Ctrl+F5**. Bump `?v=` when changing the entry script.
+`index.html` cache-busts `GameEngine.js?v=5`. Submodule edits require **Ctrl+F5**. Bump `?v=` when changing the entry script.

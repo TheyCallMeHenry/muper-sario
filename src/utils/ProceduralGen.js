@@ -429,28 +429,6 @@ export class ProceduralGen {
     this.drawTreeScallop(ctx, cx, trunkTop - 2, w * 0.32, h * 0.24, 3, '#FDD835');
   }
 
-  /** Solid canopy backing — blocks parallax bleed-through puff/scallop gaps */
-  static drawTreeOpaqueUnderlay(ctx, w, h) {
-    const cx = w / 2;
-    ctx.save();
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = '#1B5E20';
-    ctx.beginPath();
-    ctx.ellipse(cx, h * 0.36, w * 0.49, h * 0.4, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  /** Force every painted canopy pixel to alpha 255 (no fringe bleed on parallax) */
-  static flattenTreeAlpha(ctx, w, h) {
-    const img = ctx.getImageData(0, 0, w, h);
-    const d = img.data;
-    for (let i = 3; i < d.length; i += 4) {
-      if (d[i] > 0) d[i] = 255;
-    }
-    ctx.putImageData(img, 0, 0);
-  }
-
   // Generate a tree — picks one of several flat vector styles from seed
   static generateTree(canvas, width, height, seed = Math.random()) {
     const ctx = canvas.getContext('2d');
@@ -471,9 +449,7 @@ export class ProceduralGen {
       slenderPoplar: this.drawTreeSlenderPoplar,
       yellowAutumn: this.drawTreeYellowAutumn
     };
-    this.drawTreeOpaqueUnderlay(ctx, width, height);
     drawers[style].call(this, ctx, width, height, rng);
-    this.flattenTreeAlpha(ctx, width, height);
     ctx.globalAlpha = 1;
 
     return canvas;
