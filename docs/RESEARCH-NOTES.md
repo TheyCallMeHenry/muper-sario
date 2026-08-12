@@ -1,6 +1,6 @@
 # Research Notes — Muper Sario 2.0
 
-> Curated from v1 research + v2 validation (2026-08-12)  
+> Curated from v1 research + v2 validation (2026-08-12, updated evening Phases 8–10)  
 > **Live:** https://theycallmehenry.github.io/muper-sario/  
 > Full v1 log: `D:\Apps\Laguna-S-2.1-MuperSario\docs\RESEARCH-FINDINGS.md`  
 > QA details: [`QA-FINDINGS.md`](QA-FINDINGS.md) · Architecture: [`DESIGN.md`](../DESIGN.md)
@@ -137,32 +137,89 @@ Source: [SMBpedia Movement](https://simplistic6502.github.io/smb1_tll/smbpedia_m
 | Level win time bonus | **Multiplier** on base score only |
 
 **Final score (level complete):** `round(baseScore × clamp(parTime / elapsed, 0.5, 2.0))`  
-Level 1 par time: **90 s** (`levelData.js`). Game over saves raw base score (no time modifier).
+`parTimeSeconds` from **generated layout** (Phase 10); legacy LEVEL_1 reference used **90 s**. Game over saves raw base score (no time modifier).
 
 Leaderboard stores final score after level complete or base score after game over.
 
 ---
 
-## World coordinates (LEVEL_1 — `levelData.js`)
+## SMB visual scale (Phase 9b — 2026-08-12 evening)
+
+**Problem:** Comparing NES absolute pixels to v2 pixels without a scale factor causes contradictions (e.g. “Mario 16 px” vs “pipe 96 px” looks like 6×, not 2×).
+
+**Determination:** v2 art uses ~**3×** NES tile scale. **Ratios** match SMB1 World 1-1 reference; absolute counts differ.
+
+| Object | SMB1 (NES) | Ratio | Muper Sario v2 | v2 constant |
+|--------|------------|-------|----------------|-------------|
+| Small Mario | ~16 px (1 tile) | 1× | **48 px** | `PLAYER_HEIGHT` |
+| Short pipe | ~32 px (2 tiles) | 2× Mario | **96 px** | `PIPE_HEIGHT` |
+| Brick / ? block | 16 px tile | — | **32 px** | `BLOCK_SIZE` |
+| Platform row | 3 tiles above ground | 3× block | top **y = 404** | `PLATFORM_Y` in levelData |
+| Goomba analogue (Buba) | ~16 px | ~⅔–1× Mario | **32 px** | `BUBA_HEIGHT` |
+
+**Check:** 96 ÷ 48 = **2** (pipe : player in v2). 96 ÷ 16 = **6** only when comparing v2 pipe to NES Mario — conflates coordinate systems.
+
+**Coin height (Phase 9 → 9b):**
+
+| Pass | `COIN_FLOAT_ABOVE` | Ground coin y | Rationale |
+|------|-------------------|---------------|-----------|
+| Phase 9 | 34 px (70% of 48) | 446 | Initial “⅔–¾ player height” attempt |
+| Phase 9b | **20 px** (~⅖ player) | **460** | User: still too high; closer to SMB ground-coin feel |
+
+**Coin/pipe spacing:** Chunk definitions and `validateLevel()` enforce **≥ 48 px** (`COIN_MIN_PIPE_GAP`) between coins and pipe cap edges. Legacy LEVEL_1 used hand-placed X positions with same rule.
+
+---
+
+## World coordinates — procedural runs (Phase 10)
+
+Default run: **12 chunks × 400 px = 4800 px**.
+
+```
+Canvas viewport:     800 × 600
+World width:         layout.width (4800 px default)
+Finish flag:         finishX = width − 80
+Player spawn:        x = 100 (start chunk)
+Ground surface:      y = 500
+Pipe height:         96 px · top y = 404
+Platform row:        y = 404 (3 × 32 px blocks above ground)
+Ground coin y:       460 (COIN_FLOAT_ABOVE 20 px)
+Platform coin y:     364
+Par time:            layout.parTimeSeconds (derived — not fixed)
+Camera offset:       35% (CAMERA_PLAYER_OFFSET)
+Jump reach:          ~130 px apex — clears 96 px pipe/platform height
+Seed URL:            ?seed=42 → deterministic chunk sequence (see DOC-INDEX)
+```
+
+Assembly: `createRunLevel()` → `LevelGenerator.generateValidatedLevel()`.
+
+---
+
+## World coordinates — legacy LEVEL_1 (reference only)
+
+Hand-placed layout preserved in `levelData.js` — **not loaded at runtime** after Phase 10.
 
 ```
 Canvas viewport:     800 × 600
 World width:         4800 px
 Finish flag:         x = 4720
-Player spawn:        x = 100, y = 452 (feet at 500)
+Player spawn:        x = 100, y = 452 (feet at ground y = 500)
 Ground surface:      y = 500
 Ground segments:     [0–1680], [1820–3480], [3600–4800]
 Pits:                1680–1820 (140 px), 3480–3600 (120 px)
-Pipe top:            y = 380 (height 120 px)
+Pipe height:         96 px (2× player — SMB ratio)
+Pipe top:            y = 404
 Pipe positions (11): 520, 720, 1180, 1380, 2080, 2280, 2680, 2880, 3080, 3920, 4120
-Coins:               25 positions (see levelData.js)
+Floating blocks:     11 (under elevated coins; platform top y = 404)
+Ground coins (14):   y = 460; X: 180, 260, 340, 630, 1090, 1500, 1980, 2580, 3180, 3380, 3720, 4200, 4360, 4520
+Platform coins (11): y = 364; X: 450, 650, 980, 1280, 2210, 2410, 2810, 3010, 3840, 4050, 4640
 Bubas (6):           [280,200–460,→] [920,760–1080,←] [1620,1480–1660,→]
                      [2420,2320–2620,←] [3260,3120–3420,→] [3780,3640–3880,←]
 Par time:            90 s (time bonus multiplier on level win)
 Camera offset:       player at 35% from left (CAMERA_PLAYER_OFFSET)
+Jump reach:          ~130 px apex from ground — clears 96 px pipe/platform height
 ```
 
-Parallax factors: mountains **0.1**, clouds **0.25**, forests **0.5**, ground **1.0**.
+Parallax factors: mountains **0.1**, clouds **0.25** (soft), forests **0.5** (compositor α=1; sprite bake fix OPEN §10b), ground **1.0**.
 
 ---
 
@@ -171,7 +228,8 @@ Parallax factors: mountains **0.1**, clouds **0.25**, forests **0.5**, ground **
 See [`DESIGN.md`](../DESIGN.md) for authoritative frame order. Summary:
 
 ```
-updatePhysics → onGround=false → buba.update → pipe → buba-player → coins
+updatePhysics → onGround=false → buba.update(pipes, blocks, ground)
+→ pipe + block platform collision → buba-player (two-pass stomp/hurt) → coins
 → fall-death → ground snap → grantCoyoteTime on ledge leave → animation → camera → win check
 ```
 
@@ -244,13 +302,51 @@ High score row layout uses panel-relative `innerLeft` / `innerRight` padding —
 | Draw alpha | 0.85 |
 | Phase 6 | World-placed; parallax 0.25× camera |
 
-### Mountains
+### Mountains (Phase 8 — low-poly)
 
-Opaque; snow cap triangle from peak — FlappyBird `Background.js` model. Parallax 0.1×.
+**Reference:** `assets/examples/vector-generated-mountains-example.png`
 
-### Player (Phase 6)
+| Aspect | Implementation |
+|--------|----------------|
+| Style | Flat-shaded facets; no gradients |
+| Peaks | 1–3 per sprite (wider sprites → 2–3) |
+| Silhouette | Unified polygon fill first (`fillMountainRangeSilhouette`) |
+| Snow | White/light/shadow gray facets overlapping rock (~upper 25%) |
+| Colors | `MOUNTAIN_COLORS` rock grays + snow whites |
+| Parallax | 0.1× camera in `Background.js`; also TitleScene backdrop |
 
-All sprite hex colors passed through `ProceduralGen.invertHex()` (255−R, 255−G, 255−B).
+**Bug fixed:** Facet-only drawing left hollow A-frame gaps — resolved by solid underlay + connected multi-peak silhouette.
+
+### Trees (Phase 8 — flat vector)
+
+**Reference:** `assets/examples/hand-drawn-trees-collection-set-illustration-for-infographic-or-other-uses-vector.webp`
+
+| Style ID | Description |
+|----------|-------------|
+| `fluffyOak` | Scalloped cloud canopy + split branches |
+| `radialCircle` | Mint circle + radial branch spokes |
+| `orchardPuffs` | Clustered puffs + yellow fruit dots |
+| `lobedForest` | Large multi-lobe dark canopy |
+| `pillDots` | Rounded pill canopy + fleck dots |
+| `tealBush` | Low 3-lobe bush + white speckles |
+| `geoConifer` | Teal circle + tapered trunk |
+| `spikyEvergreen` | Stepped jagged pine silhouette |
+| `slenderPoplar` | Tall teardrop oval canopy |
+| `yellowAutumn` | Small yellow 3-lobe cloud |
+
+Seeded random picks one style per `generateTree()` call. Used in `Background.generateForests()` and `TitleScene`. Compositor forest layer uses **`alpha: 1`**.
+
+**Open issue (Phase 10b):** User still reports mountains visible through canopies. Phase 9 compositor fix alone insufficient. Interim `drawTreeOpaqueUnderlay()` + `flattenTreeAlpha()` in code — **rejected** (generic green ovals visible). Proper fix: per-style solid silhouettes, no `rgba()` in bake — see § Phase 10b parallax opacity research.
+
+### Blocks (Phase 9)
+
+**Generator:** `ProceduralGen.generateBlock()` — 32×32 SMB orange brick with mortar lines.
+
+**Entity:** `Block.js` — one-way top collision (same rules as `Pipe.checkCollisionDetailed`).
+
+### Player (Phase 6 + 9)
+
+All sprite hex colors passed through `ProceduralGen.invertHex()`. Walk/run uses **vertical leg lift** (`leftLift` / `rightLift` alternating) — legs stay under torso; no horizontal splay.
 
 ---
 
@@ -258,10 +354,15 @@ All sprite hex colors passed through `ProceduralGen.invertHex()` (255−R, 255�
 
 | Rule | Implementation |
 |------|----------------|
-| Patrol | Reverse at bounds, world edge, ledge (segment check), pipe body |
-| Stomp | Descending + feet near head → defeat, bounce −8, **+1 score** |
-| Side | `loseLife()` unless invincible |
-| Squish | 8 px sprite flush with groundY |
+| Patrol | Reverse at bounds, world edge, ledge (segment check), pipe body, **block body** |
+| Stomp band | `(feet − bubaTop) ≤ BUBA_STOMP_TOLERANCE + height × 0.5` |
+| Stomp posture | Player upper 55% above Buba vertical midpoint |
+| Descending | `vy ≥ 0`; GameScene uses **frame-start** `frameDescending` |
+| Resolution | Pass 1: all stomps; Pass 2: hurt only if no stomp this frame |
+| Defeat | `stomp()` → squish 8 px, bounce −8, **+1 score** |
+| Side | `loseLife()` unless invincible (1.5 s) |
+
+**Edge cases hardened (Phase 8):** fast-fall through head; same-frame multi-Buba hurt after bounce.
 
 ---
 
@@ -273,7 +374,7 @@ Life loss when `player.y + player.height > CANVAS_HEIGHT` (600). Pits (missing g
 
 ## Level completion
 
-Trigger: `player.x + player.width >= LEVEL_1.finishX` (4720).
+Trigger: `player.x + player.width >= finishX` (procedural: `width − 80`).
 
 Flow:
 
@@ -282,3 +383,225 @@ Flow:
 3. Name entry → `Storage.saveScore(finalScore, initials)` → HighScoresScene
 
 Game over uses same name-entry UX but saves **base score** only (no time modifier).
+
+---
+
+## Procedural level generation (Phase 10 — 2026-08-12)
+
+Research-backed approach for rogue-lite endless replayability. SMB 1-1 reference: `assets/examples/` (full horizontal panorama — segment buffers, pit/challenge/vertical modules).
+
+### Evidence base (marketing-aware)
+
+| Source | Finding used in v2 |
+|--------|-------------------|
+| [Summerville et al. — Procedural Content Generation in Games](https://www.procedural-content-generation.org/) | PCG increases replayability when **constraints** guarantee playability, not pure randomness |
+| [Shaker et al. — Evaluating PCG Systems (2024)](https://arxiv.org/html/2404.18657v1) | Evaluate on **structural validity** + play metrics, not visual variety alone |
+| [Smith et al. — Platformer Level Design (AIIDE 2021)](https://cdn.aaai.org/ojs/18755/18755-52-22428-1-10-20210929.pdf) | Platformer PCG is **constraint-sensitive** — small gap width changes can make levels impossible |
+| [Green et al. — Mario Scene Stitching (IEEE CoG 2020)](https://ieee-cog.org/2020/papers/paper_34.pdf) | **Pre-authored scenes + socket stitching** beats naive tile noise for side-scrollers |
+| [Spelunky / Dead Cells model](https://www.abratabia.com/procedural-generation/roguelike-levels.php) | Roguelites use **hand-crafted room templates** + procedural **sequencing** and placement |
+| [Generalist Programmer PCG survey (2026)](https://generalistprogrammer.com/procedural-generation-games) | 2D platformers: **chunk assembly**, constraint solving, rhythm/pacing — not Perlin terrain |
+| [WFC platformer experiment (De Giorgio)](https://www.giorgiomicheledegiorgio.com/projects/procedural-2d-platformer/) | WFC works with **designer-defined chunks + adjacency constraints** — heavier than needed for v2 |
+
+**Avoided (hype / poor fit):** LLM level generators (unreliable physics), raw WFC on empty tiles (hard to tune jump reach), GAN level gen (training overhead, no bundler project), infinite Perlin heightmaps (wrong genre).
+
+### v2 design decisions (locked)
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Unit | **400 px chunk** | Matches ground texture tile; ~½ viewport; SMB 1-1 “segment” scale |
+| Interlock | **Left/right sockets** (`solid` / `open`) | Guarantees seamless ground/pit continuity at boundaries |
+| Library | **26 unique chunks** | Exceeds 20 minimum; mix of flat, pipe, platform, pit, buba, gap-span |
+| Assembly | **Weighted random + difficulty curve** | Later slots allow hard chunks; early run stays fair |
+| Seed | **Mulberry32 PRNG** + **`?seed=` URL** | Deterministic regression; new seed each run when omitted |
+| Validation | **Structural checks** | Ground exists, finish reachable, coin/pipe gap ≥ `COIN_MIN_PIPE_GAP` |
+| Par time | **Derived from layout** | Scales with length, pits, collectibles — fair time bonus per run |
+
+### SMB 1-1 structural mapping
+
+From reference panorama analysis (image in `assets/examples/`):
+
+- **Buffer zones:** 2–4 tiles flat ground between modules → `flat_empty`, `start` chunks
+- **Challenge segments:** pits 2–3 tiles wide → `pit_small`, `pit_medium`, `gap_*` span trio
+- **Vertical segments:** pipes, block stairs → `pipe_*`, `block_stair`, `platform_*`
+- **Baseline:** constant ground Y → all chunk edges at same surface height when `solid`
+
+### Chunk library (26)
+
+| ID | Role |
+|----|------|
+| `start` / `finish` | Run bookends (fixed placement) |
+| `flat_empty`, `flat_coins_3`, `flat_coins_5`, `reward_run` | Easy traversal / coin rewards |
+| `pipe_single_center`, `pipe_single_offset`, `pipe_pair`, `pipe_triple` | Pipe platforms |
+| `platform_single`, `platform_double`, `platform_pipe_combo`, `block_stair`, `coin_arc` | Elevated platforms |
+| `pit_small`, `pit_medium`, `pit_wide`, `pit_platform_bridge` | Internal pit gaps |
+| `gap_start`, `gap_span`, `gap_end` | Multi-chunk pit span (open sockets) |
+| `buba_patrol`, `buba_pipe`, `buba_double`, `sparse_challenge` | Enemy encounters |
+
+### Testing (Phase 10)
+
+| Test | Result |
+|------|--------|
+| `test.html` imports | **23/23** pass |
+| `node --check` all `src/**/*.js` | pass |
+| 20-seed `validateLevel()` loop | pass |
+| Regression seed **42** | Documented sequence in DOC-INDEX + QA-FINDINGS |
+| User manual QA | `http://localhost:38473/?seed=42` |
+
+### Implementation
+
+| Module | Role |
+|--------|------|
+| `src/config/levelChunks.js` | Chunk definitions (local coords, sockets, weights) |
+| `src/utils/LevelGenerator.js` | Seed → sequence → merged world layout |
+| `src/config/levelData.js` | `createRunLevel()` factory; `LEVEL_1` legacy reference |
+| `GameScene.enter()` | Calls `createRunLevel()` each run |
+
+### Future tuning signals
+
+- Automated reachability probe (simple AI walk/jump simulation)
+- Player telemetry: death heatmaps per chunk ID
+- **Dynamic par time** — ground-path hybrid formula (see § Phase 10b below)
+- **Tree sprite opacity** — per-style solid silhouettes (see § Phase 10b below)
+
+---
+
+## Phase 10b — Parallax opacity research (2026-08-12 late evening)
+
+> **Status:** Research complete · code fix **pending** (interim underlay hack in tree — **rejected**, must revert)  
+> **Date verified before research:** Wednesday, August 12, 2026 (system clock)
+
+User report: mountains still visible through tree canopies at `?seed=42` after Phase 9 `Background` alpha fix. Screenshot confirmed dark generic green ovals visible behind style-specific tree tops (undesirable).
+
+### Two distinct “transparency” mechanisms
+
+| Mechanism | What it is | Mountains/trees rule |
+|-----------|------------|----------------------|
+| **Compositor alpha** | `ctx.globalAlpha` or per-element `alpha` at `drawImage` time | Must be **1.0** for mountains and trees |
+| **Sprite pixel alpha** | Transparent or fractional-alpha pixels in baked offscreen canvas | Canopy interior must be **fully opaque**; transparency only **outside** sprite bounds |
+
+MDN: [`globalAlpha`](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/globalAlpha) scales entire draw operation. Even at compositor alpha 1.0, any source pixel with `alpha < 255` composites with layers drawn earlier — parallax mountains at 0.1× scroll make holes read as “see-through foliage.”
+
+Parallax depth in 2D platformers should use **scroll speed + palette/value**, not layer opacity ([FreePixel.art parallax guide](https://freepixel.art/blog/how-to-add-parallax-scrolling-backgrounds-pixel-art-game); [Godot 2D Parallax docs](https://docs.godotengine.org/en/stable/tutorials/2d/2d_parallax.html)). Foreground layers *may* use transparency intentionally — mountains and trees are locked **fully opaque** in v2.
+
+### Root causes identified (code audit)
+
+**Compositor (runtime draw):**
+
+| Location | Issue | Status |
+|----------|-------|--------|
+| `Background.js` | Forest/mountain `alpha: 1` | ✅ Correct |
+| `Background.js` | `ctx.save()` / `restore()` per parallax element | ✅ Added Phase 10b attempt |
+| `TitleScene.js` | Trees drawn at `globalAlpha 0.6–0.9` | ✅ Removed Phase 10b attempt |
+| `TitleScene.js` | Mountains drawn at `globalAlpha 0.5–0.8` | ✅ Removed Phase 10b attempt |
+| Clouds / sun | Semi-transparent by design | ✅ Intentional — not mountains/trees |
+
+**Sprite bake (`ProceduralGen.generateTree` / `generateMountain`):**
+
+| Issue | Affected styles | Detail |
+|-------|-----------------|--------|
+| **Canopy gaps** | `orchardPuffs`, multi-scallop styles | Separate circles/scallops leave **alpha-0 holes** between shapes |
+| **Fractional fringe** | All curved paths | Canvas anti-aliasing → edge pixels ~1–12/255 alpha |
+| **`rgba()` highlights** | `tealBush` (was `rgba(255,255,255,0.75)`) | Semi-transparent fill in bake |
+| **Mountains** | N/A at bake | `generateMountain()` uses solid `#RRGGBB` only; hollow-center bug fixed Phase 8 via silhouette |
+
+Pixel test (browser, post-`flattenTreeAlpha`): painted pixels min alpha 255; interior canopy holes remain where circles do not overlap. Worst interior hole count across 100 seeds: **0** only after generic underlay — but underlay is visually wrong.
+
+### Troubleshooting attempts (chronological)
+
+| # | Approach | Result | Verdict |
+|---|----------|--------|---------|
+| 1 | Phase 9: `Background.generateForests()` `alpha: 1` | Partial — user still sees bleed-through | Necessary not sufficient |
+| 2 | Remove `TitleScene` tree `globalAlpha 0.6–0.9` | Title improved | Necessary not sufficient |
+| 3 | **`drawTreeOpaqueUnderlay()`** — generic dark-green ellipse before style draw | Blocks parallax holes | **Rejected** — visible wrong-color backing behind each style’s canopy |
+| 4 | **`flattenTreeAlpha()`** — force any painted pixel to alpha 255 | Fixes fringe only | Band-aid; does not fix holes without underlay |
+| 5 | Remove `TitleScene` mountain compositor alpha | Mountains opaque on title | Correct compositor fix |
+| 6 | Bump `GameEngine.js?v=4` | Module cache bust | Required for local verification |
+
+**Do not ship:** `drawTreeOpaqueUnderlay`, `flattenTreeAlpha` — revert before proper art fix.
+
+### Correct fix (research consensus — not yet implemented)
+
+1. **Revert** generic underlay + flatten pass.
+2. **Per-style solid silhouettes** — each style draws a **style-native** closed canopy path in its own shadow/dark green **before** decorative layers (same pattern as `fluffyOak` shadow scallops, `fillMountainRangeSilhouette` for mountains).
+3. **No `rgba()`** in tree/mountain bake — `#RRGGBB` fills/strokes only.
+4. **`globalAlpha = 1`** for entire bake; reset explicitly in `generateTree` / `generateMountain`.
+5. **Do not use** `getContext('2d', { alpha: false })` for tree sprites — need transparency **outside** tree bounds; opacity required **inside** silhouette only ([MDN getContext alpha attribute](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/getContext)).
+6. Flat-vector best practice: boolean-union / single silhouette ([SVGSketch boolean ops](https://svgsketch.com/svg-boolean-operations)) — construction circles must fully overlap or merge into one path.
+
+**Style-specific notes:**
+
+| Style | Fix |
+|-------|-----|
+| `orchardPuffs` | Solid blob in `#2E7D32` under puff circles, or single scallop path |
+| `fluffyOak`, `lobedForest` | Verify shadow scallop fully under highlight |
+| `tealBush` | Opaque highlight dots (`#B2DFDB`) — no rgba |
+| Single-path styles (`radialCircle`, `spikyEvergreen`, etc.) | Already structurally sound; verify compositor alpha only |
+
+### Research sources (parallax opacity)
+
+| Source | Finding applied |
+|--------|-----------------|
+| [MDN globalAlpha](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/globalAlpha) | Compositor vs source pixel alpha |
+| [MDN getContext alpha:false](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/getContext) | Opaque canvas for full-bleed only — wrong for sparse sprites |
+| [MDN imageSmoothingEnabled](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/imageSmoothingEnabled) | Optional crisp edges for pixel art — v2 uses vector, fringe acceptable at outer edge only |
+| [Canvas alpha premultiplication](https://www.javascriptroom.com/blog/how-can-i-stop-the-alpha-premultiplication-with-canvas-imagedata/) | Explains fringe compositing; not a substitute for solid silhouettes |
+| [FreePixel.art parallax](https://freepixel.art/blog/how-to-add-parallax-scrolling-backgrounds-pixel-art-game) | Depth via speed + desaturation, not layer opacity |
+| [Godot 2D Parallax](https://docs.godotengine.org/en/stable/tutorials/2d/2d_parallax.html) | Layer ordering, sizing — no opacity requirement for depth |
+
+---
+
+## Phase 10b — Dynamic par time research (2026-08-12 late evening)
+
+> **Status:** Analysis complete · implementation **pending**
+
+With procedural layouts, a single fixed par (legacy LEVEL_1: 90 s) or coarse chunk-count heuristic does not track actual traversal difficulty.
+
+### Current implementation (Phase 10 — interim)
+
+```javascript
+parTimeSeconds = round(55 + middleCount * 4 + pitCount * 6 + coins.length * 0.5)
+```
+
+Typical 12-chunk run: **~95–110 s**. Read by `GameScene` from `levelLayout.parTimeSeconds`.
+
+### User proposal (evaluated)
+
+> Walk-speed baseline: `(finishX − spawnX) / PLAYER_WALK_SPEED + 10 s` buffer
+
+| Aspect | Assessment |
+|--------|------------|
+| Per-level dynamic par | ✅ Correct direction for rogue-lite PCG |
+| Walk-only baseline | ✅ Reasonable “cruise floor” (not speedrun ceiling) |
+| Straight-line distance | ❌ Ignores pit detours, vertical jumps, optional coin paths |
+| Flat +10 s buffer | ❌ Does not scale with pit/platform count |
+| Run speed (5.75) | Walk-based par is intentionally forgiving if player sprints |
+
+### Recommended approach (hybrid — implement in `LevelGenerator`)
+
+```
+parSeconds =
+    mandatoryGroundPathDistance / PLAYER_WALK_SPEED
+  + pitCount × PIT_PENALTY           // ~4–6 s each
+  + elevatedPlatformCount × PLATFORM_PENALTY  // ~1–2 s (pipes/blocks requiring hop)
+  + bubaCount × BUBA_PENALTY           // ~0.5–1 s
+  + BASE_BUFFER                        // ~6–8 s
+```
+
+Clamp to `[45, 180]` for default run length.
+
+**Mandatory ground path:** Sum merged `ground[]` segment lengths from spawn (x=100) toward `finishX` — not raw `finishX − spawnX`.
+
+**Scoring curve (unchanged):** `clamp(parTime / elapsed, 0.5, 2.0)` — optionally display PAR on level-complete overlay.
+
+**Deferred:** Full pathfinding simulation, percentile calibration from playtest telemetry, run-speed-based par.
+
+### Research sources (par time)
+
+| Source | Relevance |
+|--------|-----------|
+| [Shaker et al. 2024 — PCG evaluation](https://arxiv.org/html/2404.18657v1) | Metrics should reflect structural difficulty |
+| [Smith et al. AIIDE 2021 — platformer PCG](https://cdn.aaai.org/ojs/18755/18755-52-22428-1-10-20210929.pdf) | Small geometry changes alter completion time |
+| SMB movement research (this doc § SMB run+jump) | Walk 3.5 vs run 5.75 px/frame — par assumes walk |
+
+---
+

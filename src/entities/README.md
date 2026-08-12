@@ -5,10 +5,29 @@ Drawable and collidable game objects.
 | Module | Role |
 |--------|------|
 | `Player.js` | SMB run+jump physics, coyote (ground/platform), jump buffer |
-| `Pipe.js` | One-way platform collision (76 px cap / 60 px body) |
-| `Buba.js` | Ground-patrol enemy; stomp (+1 score) / side-hit |
+| `Pipe.js` | One-way platform collision (76 px cap / 60 px body); 96 px tall |
+| `Block.js` | SMB floating brick (32×32); one-way top collision |
+| `Buba.js` | Ground-patrol enemy; stomp / side-hit; pipe + block aware |
 | `Coin.js` | Collectible (+1 score) |
-| `Ground.js` | Segmented ground, pits, camera-scrolled texture |
-| `Background.js` | Camera parallax sky, mountains, clouds, trees |
+| `Ground.js` | Segmented ground, pits (from generated layout), camera-scrolled texture |
+| `Background.js` | Parallax — mountains 0.1×, clouds 0.25×, trees 0.5× |
+
+## Background.js (parallax)
+
+| Layer | Parallax | Compositor alpha | Notes |
+|-------|----------|------------------|-------|
+| Sky | 0 (fixed) | 1 | Gradient + sun |
+| Mountains | 0.1 | **1** | Baked sprites from `generateMountain()` |
+| Clouds | 0.25 | 0.85 (in drawCloudPuffs) | Intentionally soft |
+| Forests | 0.5 | **1** | Baked sprites from `generateTree()` |
+
+Uses `ctx.save()` / `restore()` per parallax element. **Tree sprite bake** must be fully opaque inside canopy (Phase 10b — see RESEARCH-NOTES).
+
+## Buba collision (see DESIGN.md)
+
+- `checkPlayerCollision(player, { descending })` → `'stomp' | 'hurt' | null`
+- Stomp band uses upper half of hitbox + player-above-midline test
+- `update(deltaTime, pipes, blocks, ground, worldWidth)` — reverses at blocks + pipes
+- Dead Bubas return `null`; 8 px squish sprite at `groundY`
 
 Entities do not own scene flow or final score rules (time bonus applied in `GameScene`).

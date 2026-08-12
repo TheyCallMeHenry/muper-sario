@@ -1,8 +1,9 @@
 // GameScene - v2: side-scrolling level, camera follow, level completion
 import { GAME_CONFIG } from '../config/gameConfig.js';
-import { LEVEL_1 } from '../config/levelData.js';
+import { createRunLevel } from '../config/levelData.js';
 import { Player } from '../entities/Player.js';
 import { Pipe } from '../entities/Pipe.js';
+import { Block } from '../entities/Block.js';
 import { Buba } from '../entities/Buba.js';
 import { Ground } from '../entities/Ground.js';
 import { Background } from '../entities/Background.js';
@@ -10,6 +11,7 @@ import { Coin } from '../entities/Coin.js';
 import { Storage } from '../utils/Storage.js';
 import { UiText } from '../utils/UiText.js';
 import { MathUtils } from '../utils/MathUtils.js';
+import { getRunSeedFromUrl } from '../utils/LevelGenerator.js';
 
 const SPAWN_X = 100;
 
@@ -19,13 +21,16 @@ export class GameScene {
     this.game = sceneManager.getGame();
     this.player = null;
     this.pipes = [];
+    this.blocks = [];
     this.coins = [];
     this.bubas = [];
     this.ground = null;
     this.background = null;
 
-    this.levelWidth = LEVEL_1.width;
-    this.finishX = LEVEL_1.finishX;
+    this.levelLayout = null;
+    this.levelWidth = 0;
+    this.finishX = 0;
+    this.parTimeSeconds = 90;
     this.cameraX = 0;
 
     this.isAlive = true;
@@ -49,19 +54,29 @@ export class GameScene {
   }
 
   enter() {
+    const runSeed = getRunSeedFromUrl();
+    this.levelLayout = createRunLevel(runSeed);
+    if (runSeed != null) {
+      console.info('[Muper Sario] run seed:', this.levelLayout.seed, '→', this.levelLayout.chunkSequence.join(' → '));
+    }
+    this.levelWidth = this.levelLayout.width;
+    this.finishX = this.levelLayout.finishX;
+    this.parTimeSeconds = this.levelLayout.parTimeSeconds;
+
     const startY = GAME_CONFIG.CANVAS_HEIGHT - GAME_CONFIG.GROUND_HEIGHT - GAME_CONFIG.PLAYER_HEIGHT;
     this.player = new Player(SPAWN_X, startY);
     this.player.setGame(this.game);
 
-    this.pipes = LEVEL_1.pipes.map(x => {
+    this.pipes = this.levelLayout.pipes.map(x => {
       const pipe = new Pipe(x, GAME_CONFIG.PIPE_HEIGHT);
       pipe.passed = false;
       return pipe;
     });
 
-    this.coins = LEVEL_1.coins.map(c => new Coin(c.x, c.y));
-    this.bubas = LEVEL_1.bubas.map(([x, min, max, dir]) => new Buba(x, min, max, dir));
-    this.ground = new Ground(LEVEL_1.ground);
+    this.coins = this.levelLayout.coins.map(c => new Coin(c.x, c.y));
+    this.blocks = (this.levelLayout.blocks || []).map(b => new Block(b.x, b.y));
+    this.bubas = this.levelLayout.bubas.map(([x, min, max, dir]) => new Buba(x, min, max, dir));
+    this.ground = new Ground(this.levelLayout.ground);
     this.background = new Background(this.levelWidth);
 
     this.cameraX = 0;
@@ -118,7 +133,7 @@ export class GameScene {
     this.baseScore = this.game.score;
     this.timeMultiplier = MathUtils.computeTimeScoreMultiplier(
       this.levelElapsed,
-      LEVEL_1.parTimeSeconds,
+      this.parTimeSeconds,
       GAME_CONFIG.TIME_SCORE_MIN_MULT,
       GAME_CONFIG.TIME_SCORE_MAX_MULT
     );
@@ -168,26 +183,26 @@ export class GameScene {
     this.player.onGround = false;
 
     for (const buba of this.bubas) {
-      buba.update(deltaTime, this.pipes, this.ground, this.levelWidth);
+      buba.update(deltaTime, this.pipes, this.blocks, this.ground, this.levelWidth);
     }
 
     if (!this.invincible) {
-      for (const pipe of this.pipes) {
-        const collision = pipe.checkCollisionDetailed(this.player);
+      for (const platform of [...this.pipes, ...this.blocks]) {
+        const collision = platform.checkCollisionDetailed(this.player);
         if (collision) {
           if (collision.type === 'top') {
-            const pipeTop = pipe.getBounds().y;
-            this.player.y = pipeTop - this.player.height + 1;
+            const platformTop = platform.getBounds().y;
+            this.player.y = platformTop - this.player.height + 1;
             this.player.vy = 0;
             this.player.onGround = true;
             this.player.isJumping = false;
             this.player.setGroundContact('platform');
           } else if (collision.type === 'side') {
-            const pipeBounds = pipe.getBounds();
+            const platformBounds = platform.getBounds();
             if (collision.pushX < 0) {
-              this.player.x = pipeBounds.x - this.player.width;
+              this.player.x = platformBounds.x - this.player.width;
             } else {
-              this.player.x = pipeBounds.x + pipeBounds.width;
+              this.player.x = platformBounds.x + platformBounds.width;
             }
             this.player.vx = 0;
           }
@@ -196,17 +211,29 @@ export class GameScene {
     }
 
     if (!this.invincible) {
+      const frameDescending = this.player.vy >= 0;
+      let stompedThisFrame = false;
+
       for (const buba of this.bubas) {
-        const hit = buba.checkPlayerCollision(this.player);
+        const hit = buba.checkPlayerCollision(this.player, { descending: frameDescending });
         if (hit === 'stomp') {
           buba.stomp();
           this.game.addScore(GAME_CONFIG.SCORE_PER_BUBA);
           this.player.vy = GAME_CONFIG.PLAYER_STOMP_BOUNCE;
           this.player.onGround = false;
-          this.game.getAudio().playStomp();
-        } else if (hit === 'hurt') {
-          this.loseLife();
-          return;
+          if (!stompedThisFrame) {
+            this.game.getAudio().playStomp();
+          }
+          stompedThisFrame = true;
+        }
+      }
+
+      if (!stompedThisFrame) {
+        for (const buba of this.bubas) {
+          if (buba.checkPlayerCollision(this.player) === 'hurt') {
+            this.loseLife();
+            return;
+          }
         }
       }
     }
@@ -388,6 +415,7 @@ export class GameScene {
 
     this.renderFinishFlag(ctx);
     for (const pipe of this.pipes) pipe.render(ctx);
+    for (const block of this.blocks) block.render(ctx);
     for (const buba of this.bubas) buba.render(ctx);
     for (const coin of this.coins) coin.render(ctx);
 

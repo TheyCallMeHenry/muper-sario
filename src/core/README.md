@@ -10,4 +10,4 @@ Engine subsystems — no gameplay rules here.
 | `AudioManager.js` | Web Audio SFX; HTMLAudio BGM; mute toggle + persistence |
 | `Renderer.js` | Canvas clear + scene render dispatch |
 
-Copied from v1 with trims per [`docs/EXTRACTION-MANIFEST.md`](../../docs/EXTRACTION-MANIFEST.md). Phases 1–7 complete.
+Copied from v1 with trims per [`docs/EXTRACTION-MANIFEST.md`](../../docs/EXTRACTION-MANIFEST.md). Entry script cache bust: `GameEngine.js?v=4` in `index.html`.

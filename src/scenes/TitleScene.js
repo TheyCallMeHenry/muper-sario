@@ -59,9 +59,7 @@ export class TitleScene {
 
       const x = i * (GAME_CONFIG.CANVAS_WIDTH / 6) + Math.random() * 50;
       const y = GAME_CONFIG.CANVAS_HEIGHT - 100 - h;
-      ctx.globalAlpha = 0.5 + Math.random() * 0.3;
       ctx.drawImage(mtnCanvas, x, y);
-      ctx.globalAlpha = 1;
     }
 
     // Generate forests
@@ -75,9 +73,7 @@ export class TitleScene {
 
       const x = i * (GAME_CONFIG.CANVAS_WIDTH / 20) + Math.random() * 20;
       const y = GAME_CONFIG.CANVAS_HEIGHT - 100 - h;
-      ctx.globalAlpha = 0.6 + Math.random() * 0.3;
       ctx.drawImage(treeCanvas, x, y);
-      ctx.globalAlpha = 1;
     }
 
     // Generate ground

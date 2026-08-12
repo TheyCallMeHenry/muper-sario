@@ -6,4 +6,4 @@ Global layout, HUD overlay, and mute button CSS.
 |------|------|
 | `style.css` | Canvas scaling, score/lives/high-score HUD, `#mute-button` |
 
-HUD shows live score during gameplay; final score (with time bonus) shown on level complete overlay in `GameScene`.
+HUD shows live score during gameplay; final score (with time bonus) shown on level complete overlay in `GameScene`. Par time not shown in HUD (tracked internally only — see DESIGN.md).

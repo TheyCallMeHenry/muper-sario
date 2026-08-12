@@ -30,7 +30,7 @@ export class Buba {
     ProceduralGen.generateBubaSquished(this.squishCanvas, this.width, SQUISH_HEIGHT);
   }
 
-  update(deltaTime, pipes, ground, worldWidth) {
+  update(deltaTime, pipes, blocks, ground, worldWidth) {
     if (!this.alive) {
       this.squishTimer -= deltaTime;
       return;
@@ -58,16 +58,16 @@ export class Buba {
       reverse = true;
     }
 
-    if (!this._hasGroundAt(footProbeX, footY, pipes, ground)) {
+    if (!this._hasGroundAt(footProbeX, footY, pipes, blocks, ground)) {
       reverse = true;
     }
 
-    for (const pipe of pipes) {
-      const pb = pipe.getBounds();
+    for (const obstacle of [...pipes, ...blocks]) {
+      const ob = obstacle.getBounds();
       const futureBounds = { x: nextX, y: this.y, width: this.width, height: this.height };
-      if (this._intersects(futureBounds, pb)) {
+      if (this._intersects(futureBounds, ob)) {
         reverse = true;
-        blockingPipe = pb;
+        blockingPipe = ob;
         break;
       }
     }
@@ -96,13 +96,15 @@ export class Buba {
     this.vx = this.direction * GAME_CONFIG.BUBA_SPEED;
   }
 
-  _hasGroundAt(x, footY, pipes, ground) {
+  _hasGroundAt(x, footY, pipes, blocks, ground) {
     if (ground.hasSolidGroundAt(x) && footY <= this.groundY + 4) {
       return true;
     }
-    for (const pipe of pipes) {
-      const cap = pipe.getCapBounds();
-      if (x >= cap.x && x <= cap.x + cap.width && footY <= cap.y + GAME_CONFIG.PIPE_LANDING_TOLERANCE) {
+    for (const platform of [...pipes, ...blocks]) {
+      const bounds = platform.getBounds();
+      const topY = bounds.y;
+      if (x >= bounds.x && x <= bounds.x + bounds.width &&
+          footY <= topY + GAME_CONFIG.PIPE_LANDING_TOLERANCE) {
         return true;
       }
     }
@@ -115,23 +117,27 @@ export class Buba {
   }
 
   /**
+   * @param {object} player — must expose getBounds() and vy
+   * @param {{ descending?: boolean }} [options] — frame-start descending when vy may change mid-frame
    * @returns {'stomp'|'hurt'|null}
    */
-  checkPlayerCollision(player) {
-    if (!this.alive || this.squishTimer > 0) return null;
+  checkPlayerCollision(player, options = {}) {
+    if (!this.alive) return null;
 
     const pb = player.getBounds();
     const bb = this.getBounds();
 
     if (!this._intersects(pb, bb)) return null;
 
+    const descending = options.descending ?? player.vy >= 0;
     const playerBottom = pb.y + pb.height;
     const bubaTop = bb.y;
     const tolerance = GAME_CONFIG.BUBA_STOMP_TOLERANCE;
-    const descending = player.vy >= 0;
-    const stompZone = playerBottom <= bubaTop + tolerance;
+    const feetDepth = playerBottom - bubaTop;
+    const inStompBand = feetDepth <= tolerance + bb.height * 0.5;
+    const playerAboveMid = pb.y + pb.height * 0.55 <= bubaTop + bb.height * 0.55;
 
-    if (descending && stompZone && pb.y + pb.height * 0.5 < bubaTop + bb.height * 0.5) {
+    if (descending && inStompBand && playerAboveMid) {
       return 'stomp';
     }
 

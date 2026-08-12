@@ -51,10 +51,19 @@ export const GAME_CONFIG = {
   PLAYER_HEIGHT: 48,
 
   PIPE_WIDTH: 60,
-  PIPE_HEIGHT: 120,
+  /** SMB ratio: pipe = 2× player height (48 px × 2) */
+  PIPE_HEIGHT: 96,
   PIPE_CAP_EXTENSION: 8,
   PIPE_LANDING_TOLERANCE: 20,
   PIPE_CAP_HEIGHT: 10,
+
+  /** SMB-style floating brick (32×32, one-way top like pipe cap) */
+  BLOCK_SIZE: 32,
+  COIN_HEIGHT: 20,
+  /** Coin float above support — ~⅖ player height (SMB ground-coin feel) */
+  COIN_FLOAT_ABOVE: 20,
+  /** Min horizontal gap between coin/block and pipe cap edge (level layout) */
+  COIN_MIN_PIPE_GAP: 48,
 
   STARTING_LIVES: 3,
   GROUND_HEIGHT: 100,

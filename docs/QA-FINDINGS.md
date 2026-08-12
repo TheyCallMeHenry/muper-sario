@@ -17,7 +17,7 @@
 | Walk off pipe edge | ✅ PASS |
 | Fall off screen → lose life | ✅ PASS (code path) |
 | Game over → name entry → leaderboard | ✅ PASS |
-| test.html module load | ✅ PASS (20/20 Phase 6+) |
+| test.html module load | ✅ PASS (23/23 Phase 10+) |
 | `node --check` all `src/**/*.js` | ✅ PASS |
 
 ### Bugs found during QA (fixed)
@@ -95,27 +95,234 @@ Side-scroll 4800 px, camera, parallax, level completion, coin scoring, player in
 
 ---
 
+## Phase 8 — Art pass + Buba hardening (2026-08-12 evening)
+
+### Summary
+
+| Area | Result |
+|------|--------|
+| Flat vector trees (10 styles) | ✅ Shipped |
+| Low-poly faceted mountains | ✅ Shipped |
+| Mountain hollow-center fix | ✅ Shipped |
+| Buba stomp edge-case hardening | ✅ Shipped |
+| Docs full sync | ✅ Shipped |
+
+### Bugs / edge cases (fixed)
+
+#### 18. Hollow mountain centers
+
+**Symptom:** Sky visible through mountain middles and under snow caps (A-frame gaps).  
+**Fix:** `fillMountainRangeSilhouette()` + per-peak solid triangle underlay.
+
+#### 19. Buba stomp false-negative (fast fall)
+
+**Fix:** Stomp band uses upper half of Buba hitbox: `feetDepth ≤ tolerance + height × 0.5`.
+
+#### 20. Buba stomp false-positive hurt (same frame)
+
+**Fix:** `frameDescending` + two-pass stomp then hurt.
+
+#### 21. Transient stomp failure (user report)
+
+**Determination:** Addressed by Phase 8 collision hardening.
+
+---
+
+## Phase 9 — Level polish (2026-08-12 evening)
+
+### Summary
+
+| Area | Result |
+|------|--------|
+| Player leg walk cycle (vertical) | ✅ Shipped |
+| Opaque parallax trees | ✅ Shipped |
+| Block entity + floating platforms | ✅ Shipped |
+| Elevated coins on bricks | ✅ Shipped (11 blocks) |
+| test.html Block.js | ✅ 21/21 modules |
+
+### Bugs / issues (fixed)
+
+#### 22. Horizontal leg splay while walking
+
+**Symptom:** Legs extended sideways during walk/run (`legSwing` on X axis).  
+**Fix:** `generatePlayer()` uses alternating vertical `leftLift` / `rightLift` under torso.
+
+#### 23. Semi-transparent parallax trees
+
+**Symptom:** Mountains visible through tree canopies (`alpha: 0.6–0.9`).  
+**Fix:** `Background.generateForests()` sets `alpha: 1`.
+
+#### 24. Elevated coins without platforms
+
+**Symptom:** Coins floating in air between pipes (no SMB-style blocks below).  
+**Fix:** `Block.js` + `levelData.blocks[]`; one-way top collision in `GameScene`.
+
+#### 25. Coins too high above characters
+
+**Symptom:** Coins above head height; user wanted ~⅔–¾ player-height feel.  
+**Fix (interim):** `COIN_FLOAT_ABOVE: 34` (70% of 48 px) — superseded Phase 9b.
+
+---
+
+## Phase 9b — SMB scale + layout (2026-08-12 evening)
+
+### Summary
+
+| Area | Result |
+|------|--------|
+| Pipe height 96 px (2× player) | ✅ Shipped |
+| Coin float 20 px above support | ✅ Shipped |
+| Platform row y = 404 (3 blocks) | ✅ Shipped |
+| Coin/pipe min gap 48 px | ✅ Shipped |
+| Level X reposition pass | ✅ Shipped |
+
+### Bugs / issues (fixed)
+
+#### 26. Coins overlapping / hugging pipes
+
+**Symptom:** Ground coin at x=780 overlapped pipe 720 cap; elevated coins within ~16 px of pipes.  
+**Fix:** Repositioned coin X in `levelData.js`; documented `COIN_MIN_PIPE_GAP: 48`.
+
+#### 27. Pipes visually too tall vs SMB reference
+
+**Symptom:** 120 px pipes (~2.5× player) vs SMB ~2× Mario.  
+**Fix:** `PIPE_HEIGHT: 96`; pipe top y = **404**.
+
+#### 28. Coins still too high (user feedback)
+
+**Symptom:** Even at 34 px float, coins read too high relative to player.  
+**Fix:** `COIN_FLOAT_ABOVE: 20` (~⅖ player height); ground coins y=**460**, platform y=**364**.
+
+#### 29. NES vs v2 pixel math confusion
+
+**Determination:** SMB1 Mario ≈ 16 px, pipe ≈ 32 px on NES. v2 player 48 px = 3× scale; pipe 96 px = 2× **v2** player = 32×3 NES. Documented in RESEARCH-NOTES § SMB visual scale.
+
+---
+
+## Phase 10 — Procedural rogue-lite levels (2026-08-12 evening)
+
+### Summary
+
+| Area | Result |
+|------|--------|
+| 26 chunk library + socket matching | ✅ Shipped |
+| LevelGenerator (Mulberry32, merge, validate) | ✅ Shipped |
+| New layout every run (`createRunLevel`) | ✅ Shipped |
+| `?seed=` URL reproducibility | ✅ Shipped |
+| Legacy LEVEL_1 preserved (reference) | ✅ Shipped |
+| test.html levelChunks + LevelGenerator | ✅ 23/23 modules |
+| `node --check` all src | ✅ PASS |
+| 20-seed automated validation loop | ✅ PASS |
+| User manual test `?seed=42` | ✅ Reported |
+
+### Determinations
+
+#### 30. `?seed=` suggested before implementation
+
+**Symptom:** User tested `http://localhost:38473/?seed=42` when param was not yet wired — runs were still random (`Date.now()`).  
+**Fix:** `getRunSeedFromUrl()` in `LevelGenerator.js`; `GameScene.enter()` passes seed to `createRunLevel()`; console logs chunk sequence when seed present.
+
+#### 31. Procedural par time vs fixed 90 s
+
+**Determination:** Hand-placed LEVEL_1 used par **90 s**. Generated runs use `round(55 + chunks×4 + pits×6 + coins×0.5)` — typically **~95–110 s** for default 12-chunk runs. `GameScene` reads `layout.parTimeSeconds`.
+
+#### 32. Regression seed 42 (automated)
+
+**Expected sequence:**  
+`start → pipe_single_offset → pipe_single_offset → buba_pipe → pit_small → flat_coins_5 → platform_pipe_combo → pipe_single_offset → pit_platform_bridge → block_stair → platform_double → finish`
+
+**Verification:**
+
+```powershell
+node --input-type=module -e "import { generateValidatedLevel } from './src/utils/LevelGenerator.js'; console.log(generateValidatedLevel(42).chunkSequence.join(' -> '));"
+```
+
+---
+
+## Phase 10b — Parallax opacity + par-time research (2026-08-12 late evening)
+
+### Summary
+
+| Area | Result |
+|------|--------|
+| Date verified before web research | ✅ Wednesday, August 12, 2026 |
+| Root-cause analysis (compositor vs sprite alpha) | ✅ Documented |
+| Web research (MDN, Godot, FreePixel, canvas compositing) | ✅ Documented in RESEARCH-NOTES §10b |
+| Interim underlay + flattenTreeAlpha | ⚠️ Shipped in code · **rejected by user** — revert pending |
+| TitleScene mountain/tree compositor alpha | ✅ Fixed (draw at alpha 1) |
+| Background save/restore per element | ✅ Shipped |
+| Cache bust `GameEngine.js?v=4` | ✅ Shipped |
+| Dynamic par-time hybrid formula | 🔬 Researched · **not implemented** |
+| User manual test `?seed=42` (post-Phase 10) | ✅ Layout better; tree opacity still open |
+
+### Bugs / issues
+
+#### 33. Semi-transparent trees persist after Phase 9 compositor fix
+
+**Symptom:** Mountains visible through tree canopies during gameplay and title backdrop; reads as semi-transparent foliage.  
+**Initial diagnosis (Phase 9):** `Background` forest draw used reduced alpha — fixed with `alpha: 1`.  
+**Re-test (Phase 10b):** Issue persists. User screenshot shows bleed-through and visible dark-green oval backings.  
+**Root cause:** (1) **Sprite pixel alpha** — gaps between puff/scallop circles in baked canvas; anti-aliased fringe pixels; (2) was also **TitleScene compositor alpha** on trees/mountains. Compositor-only fix insufficient.  
+**Research:** See RESEARCH-NOTES § Phase 10b parallax opacity.  
+**Status:** **OPEN** — proper per-style silhouette fix pending; do not ship generic underlay.
+
+#### 34. Interim fix rejected — generic green oval underlay
+
+**Attempt:** `drawTreeOpaqueUnderlay()` + `flattenTreeAlpha()` in `ProceduralGen.generateTree()`.  
+**Symptom:** Fully opaque dark-green ellipse visible behind each style’s distinct canopy colors/shapes — not acceptable art.  
+**Verdict:** **Rejected.** Revert before deploy. Correct approach: style-native solid silhouettes (same pattern as mountain `fillMountainRangeSilhouette`).  
+**Documented:** RESEARCH-NOTES §10b troubleshooting table.
+
+#### 35. Par time heuristic vs procedural difficulty (research)
+
+**Symptom:** Fixed-ish par from chunk counts may not match actual traversal time on random layouts.  
+**User proposal:** `(finishX − spawnX) / walkSpeed + 10 s`.  
+**Determination:** Directionally correct; insufficient alone (ignores pits, vertical cost, detours).  
+**Recommendation:** Hybrid ground-path formula in `LevelGenerator` — RESEARCH-NOTES § Dynamic par time.  
+**Status:** **OPEN** — not implemented.
+
+### Troubleshooting log (tree opacity)
+
+| Step | Action | Outcome |
+|------|--------|---------|
+| 1 | Set `Background` forest `alpha: 1` (Phase 9) | Partial improvement |
+| 2 | Browser screenshot + pixel sampling at `?seed=42` | Confirmed holes + fringe in tree canvas |
+| 3 | Generic `drawTreeOpaqueUnderlay` ellipse | Blocks holes; ugly visible backing |
+| 4 | `flattenTreeAlpha()` post-pass | Fringe → 255; holes remain without underlay |
+| 5 | TitleScene remove tree/mountain compositor alpha | Correct compositor hygiene |
+| 6 | `GameEngine.js?v=4` cache bust | Ensures module reload locally |
+
+---
+
 ## Verified behaviors (current)
 
 | Behavior | Detail |
 |----------|--------|
-| Side scroll | Camera follows player; world width 4800 px |
+| Level generation | **Procedural** each run; 12 chunks × 400 px = 4800 px default |
+| Seed URL | `?seed=42` → deterministic layout; console logs chunk sequence |
+| Side scroll | Camera follows player; world width from generated layout |
 | Parallax | Mountains 0.1×, clouds 0.25×, trees 0.5×, ground 1.0× |
-| Pits | Ground gaps 1680–1820, 3480–3600 → fall death |
-| Level win | `player.x + width >= finishX` (4720) → LEVEL COMPLETE |
-| Base score | 1 pt/coin (max 25) + 1 pt/Buba stomp (max 6) |
-| Final score (win) | `base × clamp(90/elapsed, 0.5, 2.0)` rounded |
+| Pits | Per-chunk ground gaps + optional `gap_start`/`gap_span`/`gap_end` |
+| Level win | `player.x + width >= finishX` (`width − 80`) → LEVEL COMPLETE |
+| Base score | 1 pt/coin + 1 pt/Buba stomp (counts vary per run) |
+| Final score (win) | `base × clamp(parTime/elapsed, 0.5, 2.0)` — par from layout |
 | Coyote | 0.15 s ground / 0.22 s pipe cap; jump buffer 0.1 s |
 | Run+jump | `airRunJump` preserves run cap; tier gravity by takeoff speed |
 | Run | Left Shift; max 5.75; RunningTimer 10 frames |
-| Buba stomp | Defeat + bounce + **1 pt** |
+| Buba stomp | Defeat + bounce + **1 pt**; two-pass collision; expanded stomp band |
 | Buba side | Lose life (invincibility respected) |
+| Parallax trees | 10 flat vector styles at 0.5×; compositor **alpha = 1**; **sprite opacity fix OPEN** (§ Phase 10b) |
+| Floating blocks | SMB bricks; one-way top; in chunk definitions |
+| Pipes | 96 px tall (2× player); top y = 404 |
+| Coins | 20 px above support; generator validates ≥48 px from pipe caps |
+| Parallax mountains | Low-poly faceted at 0.1×; opaque silhouette |
 | Storage | `muperSario2Scores`; top 10 |
 | Mute | `muperSario2Muted`; pauses BGM + silences SFX |
 | Deploy | GitHub Pages from `main` root |
+| Module test | **23/23** imports in test.html |
 
 ---
 
 ## Cache note
 
-`index.html` cache-busts `GameEngine.js?v=3`. Submodule edits require **Ctrl+F5**. Bump `?v=` when changing the entry script.
+`index.html` cache-busts `GameEngine.js?v=4`. Submodule edits require **Ctrl+F5**. Bump `?v=` when changing the entry script.

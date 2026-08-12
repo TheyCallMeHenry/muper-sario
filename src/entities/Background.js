@@ -87,7 +87,7 @@ export class Background {
         y: GAME_CONFIG.CANVAS_HEIGHT - 100 - h,
         w,
         h,
-        alpha: 0.6 + Math.random() * 0.3
+        alpha: 1
       });
     }
     return trees;
@@ -128,10 +128,11 @@ export class Background {
         for (const el of layer.elements) {
           const screenX = el.worldX - cameraX * layer.parallax;
           if (screenX + el.w < -20 || screenX > GAME_CONFIG.CANVAS_WIDTH + 20) continue;
-          ctx.globalAlpha = el.alpha;
+          ctx.save();
+          ctx.globalAlpha = el.alpha ?? 1;
           ctx.drawImage(el.canvas, screenX, el.y);
+          ctx.restore();
         }
-        ctx.globalAlpha = 1;
       }
     }
   }

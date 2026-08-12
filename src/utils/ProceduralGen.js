@@ -46,106 +46,435 @@ export class ProceduralGen {
     return canvas;
   }
 
-  // Generate a mountain with snow cap (opaque; snow follows peak geometry)
+  static MOUNTAIN_COLORS = {
+    rockDark: '#4A5058',
+    rockMid: '#5E656F',
+    rockLight: '#787F89',
+    snowWhite: '#FFFFFF',
+    snowLight: '#E4E9EE',
+    snowShadow: '#C5CDD6'
+  };
+
+  static fillMountainFacet(ctx, points, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(points[0][0], points[0][1]);
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo(points[i][0], points[i][1]);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  static drawLowPolyPeak(ctx, px, py, xLeft, xRight, baseY, rng, colors, skipSilhouette = false) {
+    const span = xRight - xLeft;
+    const rise = baseY - py;
+
+    const ridgeL = [px - span * (0.17 + rng() * 0.04), py + rise * (0.3 + rng() * 0.04)];
+    const ridgeR = [px + span * (0.17 + rng() * 0.04), py + rise * (0.3 + rng() * 0.04)];
+    const midL = [px - span * (0.36 + rng() * 0.03), py + rise * (0.56 + rng() * 0.03)];
+    const midR = [px + span * (0.36 + rng() * 0.03), py + rise * (0.56 + rng() * 0.03)];
+    const snowLine = py + rise * (0.24 + rng() * 0.06);
+    const snowBaseL = [px - span * 0.22, snowLine];
+    const snowBaseR = [px + span * 0.22, snowLine];
+
+    if (!skipSilhouette) {
+      this.fillMountainFacet(ctx, [[xLeft, baseY], [xRight, baseY], [px, py]], colors.rockMid);
+    }
+
+    // Rock shading facets (overdraw for low-poly planes)
+    this.fillMountainFacet(ctx, [[xLeft, baseY], midL, ridgeL], colors.rockDark);
+    this.fillMountainFacet(ctx, [[xLeft, baseY], ridgeL, [px, py]], colors.rockLight);
+    this.fillMountainFacet(ctx, [midL, ridgeL, [px, py]], colors.rockMid);
+    this.fillMountainFacet(ctx, [[xRight, baseY], midR, ridgeR], colors.rockDark);
+    this.fillMountainFacet(ctx, [[xRight, baseY], ridgeR, [px, py]], colors.rockLight);
+    this.fillMountainFacet(ctx, [midR, ridgeR, [px, py]], colors.rockMid);
+    this.fillMountainFacet(ctx, [midL, midR, ridgeL], colors.rockDark);
+    this.fillMountainFacet(ctx, [midR, ridgeR, midL], colors.rockMid);
+    this.fillMountainFacet(ctx, [ridgeL, ridgeR, [px, py]], colors.rockLight);
+
+    // Solid snow band, then faceted highlights (overlaps rock — no seam gap)
+    this.fillMountainFacet(ctx, [[px, py], snowBaseL, snowBaseR], colors.snowWhite);
+    this.fillMountainFacet(ctx, [[px, py], ridgeL, snowBaseL], colors.snowLight);
+    this.fillMountainFacet(ctx, [[px, py], ridgeR, snowBaseR], colors.snowLight);
+    this.fillMountainFacet(ctx, [snowBaseL, snowBaseR, ridgeR], colors.snowLight);
+    this.fillMountainFacet(ctx, [snowBaseL, ridgeL, ridgeR], colors.snowShadow);
+    this.fillMountainFacet(ctx, [[px, py], snowBaseL, ridgeL], colors.snowWhite);
+    this.fillMountainFacet(ctx, [[px, py], snowBaseR, ridgeR], colors.snowWhite);
+  }
+
+  static fillMountainRangeSilhouette(ctx, peaks, width, baseY, color) {
+    if (peaks.length === 0) return;
+    if (peaks.length === 1) {
+      this.fillMountainFacet(ctx, [[0, baseY], [width, baseY], [peaks[0].x, peaks[0].y]], color);
+      return;
+    }
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(0, baseY);
+    ctx.lineTo(peaks[0].x, peaks[0].y);
+    for (let i = 1; i < peaks.length; i++) {
+      ctx.lineTo(peaks[i].x, peaks[i].y);
+    }
+    ctx.lineTo(width, baseY);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Low-poly faceted mountains — flat shaded rock + snow (no gradients)
   static generateMountain(canvas, width, height, seed = Math.random()) {
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, width, height);
 
     const rng = this.seededRandom(seed);
     const baseY = height;
-    const cx = width / 2;
-    const peakY = height * (0.08 + rng() * 0.12);
-    const snowLine = 0.3 + rng() * 0.2;
-    const snowH = height * snowLine;
+    const colors = this.MOUNTAIN_COLORS;
 
-    ctx.beginPath();
-    ctx.moveTo(0, baseY);
-    ctx.lineTo(cx, peakY);
-    ctx.lineTo(width, baseY);
-    ctx.closePath();
+    const peakCount = width > 220 ? 2 + Math.floor(rng() * 2) : 1 + Math.floor(rng() * 2);
+    const peaks = [];
+    for (let i = 0; i < peakCount; i++) {
+      const t = peakCount === 1 ? 0.5 : (i + 0.5) / peakCount;
+      peaks.push({
+        x: width * (0.12 + t * 0.76) + (rng() - 0.5) * width * 0.05,
+        y: height * (0.06 + rng() * 0.1)
+      });
+    }
+    peaks.sort((a, b) => a.x - b.x);
+    if (peakCount >= 2) {
+      const tallest = Math.floor(rng() * peakCount);
+      peaks[tallest].y = Math.min(...peaks.map((p) => p.y));
+    }
 
-    const bodyGrad = ctx.createLinearGradient(cx, peakY, cx, baseY);
-    bodyGrad.addColorStop(0, '#8B9DC3');
-    bodyGrad.addColorStop(0.4, '#7B8FB5');
-    bodyGrad.addColorStop(1, '#6B7FA5');
-    ctx.fillStyle = bodyGrad;
-    ctx.fill();
+    const margin = width * 0.04;
+    this.fillMountainRangeSilhouette(ctx, peaks, width, baseY, colors.rockMid);
 
-    ctx.beginPath();
-    ctx.moveTo(cx, peakY);
-    const slant = width * 0.5;
-    ctx.lineTo(cx - slant * 0.35, peakY + snowH);
-    ctx.lineTo(cx, peakY + snowH * 0.7);
-    ctx.lineTo(cx + slant * 0.35, peakY + snowH);
-    ctx.closePath();
-
-    const snowGrad = ctx.createLinearGradient(cx, peakY, cx, peakY + snowH);
-    snowGrad.addColorStop(0, '#ffffff');
-    snowGrad.addColorStop(0.5, '#e8eef5');
-    snowGrad.addColorStop(1, '#d0dce8');
-    ctx.fillStyle = snowGrad;
-    ctx.fill();
+    for (let i = 0; i < peaks.length; i++) {
+      const xLeft = i === 0 ? 0 : (peaks[i - 1].x + peaks[i].x) / 2;
+      const xRight = i === peaks.length - 1 ? width : (peaks[i].x + peaks[i + 1].x) / 2;
+      this.drawLowPolyPeak(
+        ctx,
+        peaks[i].x,
+        peaks[i].y,
+        Math.max(0, xLeft - margin * rng()),
+        Math.min(width, xRight + margin * rng()),
+        baseY,
+        rng,
+        colors,
+        true
+      );
+    }
 
     return canvas;
   }
 
-  // Generate a tree
-  static generateTree(canvas, width, height, seed = Math.random()) {
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, width, height);
+  // Flat vector tree styles — inspired by hand-drawn infographic silhouettes
+  static TREE_STYLES = [
+    'fluffyOak',
+    'radialCircle',
+    'orchardPuffs',
+    'lobedForest',
+    'pillDots',
+    'tealBush',
+    'geoConifer',
+    'spikyEvergreen',
+    'slenderPoplar',
+    'yellowAutumn'
+  ];
 
-    const rng = this.seededRandom(seed);
+  static drawTreeScallop(ctx, cx, baseY, radiusX, radiusY, lobes, color) {
+    const steps = lobes * 2;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    for (let i = 0; i <= steps; i++) {
+      const t = (i / steps) * Math.PI;
+      const bump = i % 2 === 0 ? 1 : 0.72;
+      const x = cx + Math.cos(t) * radiusX * bump;
+      const y = baseY - Math.sin(t) * radiusY * bump;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
 
-    // Tree trunk
-    const trunkWidth = width * 0.15;
-    const trunkHeight = height * 0.5;
-    const trunkX = (width - trunkWidth) / 2;
-    const trunkY = height - trunkHeight;
-
-    const trunkGradient = ctx.createLinearGradient(trunkX, 0, trunkX + trunkWidth, 0);
-    trunkGradient.addColorStop(0, '#8B4513');
-    trunkGradient.addColorStop(1, '#654321');
-
-    ctx.fillStyle = trunkGradient;
-    ctx.fillRect(trunkX, trunkY, trunkWidth, trunkHeight);
-
-    // Tree trunk details
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(trunkX, trunkY, trunkWidth, trunkHeight);
-
-    // Tree leaves (multiple layers for 3D effect)
-    const leafColors = ['#228B22', '#32CD32', '#208020'];
-
-    for (let i = 0; i < 3; i++) {
-      const layerY = trunkY - 10 - i * 15;
-      const layerWidth = width * (0.7 - i * 0.15);
-      const layerHeight = 25 + i * 5;
-
-      ctx.fillStyle = leafColors[i % leafColors.length];
+  static drawTreePuffs(ctx, cx, cy, puffs, color) {
+    ctx.fillStyle = color;
+    for (const [ox, oy, r] of puffs) {
       ctx.beginPath();
-      ctx.ellipse(
-        width / 2,
-        layerY + layerHeight / 2,
-        layerWidth / 2,
-        layerHeight / 2,
-        0,
-        0,
-        Math.PI * 2
-      );
+      ctx.arc(cx + ox, cy + oy, r, 0, Math.PI * 2);
       ctx.fill();
+    }
+  }
 
-      // Add leaf texture
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-      for (let j = 0; j < 5; j++) {
-        const tx = width / 2 + (rng() - 0.5) * layerWidth * 0.6;
-        const ty = layerY + (rng() - 0.5) * layerHeight;
-        const size = 2 + rng() * 4;
+  static drawTreeTrunk(ctx, cx, topY, bottomY, width, color) {
+    const half = width / 2;
+    ctx.fillStyle = color;
+    ctx.fillRect(cx - half, topY, width, bottomY - topY);
+  }
+
+  static drawTreeBranch(ctx, x1, y1, x2, y2, color, lineWidth = 1) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  }
+
+  static drawTreeFluffyOak(ctx, w, h, rng) {
+    const cx = w / 2;
+    const trunkTop = h * 0.58;
+    const trunkW = Math.max(2, w * 0.12);
+    this.drawTreeTrunk(ctx, cx, trunkTop, h, trunkW, '#A1887F');
+    // Split branches
+    const forkY = trunkTop + (h - trunkTop) * 0.35;
+    for (const dir of [-1, 1]) {
+      this.drawTreeBranch(ctx, cx, forkY, cx + dir * w * 0.18, trunkTop + 2, '#8D6E63', Math.max(1, w * 0.04));
+    }
+    // Shadow layer
+    this.drawTreeScallop(ctx, cx + w * 0.03, trunkTop - 2, w * 0.44, h * 0.36, 6, '#388E3C');
+    this.drawTreeScallop(ctx, cx, trunkTop - 4, w * 0.46, h * 0.38, 6, '#66BB6A');
+  }
+
+  static drawTreeRadialCircle(ctx, w, h, rng) {
+    const cx = w / 2;
+    const trunkTop = h * 0.62;
+    const canopyR = Math.min(w, h) * 0.38;
+    const canopyCy = trunkTop - canopyR * 0.55;
+    this.drawTreeTrunk(ctx, cx, trunkTop, h, Math.max(2, w * 0.08), '#795548');
+    ctx.fillStyle = '#80CBC4';
+    ctx.beginPath();
+    ctx.arc(cx, canopyCy, canopyR, 0, Math.PI * 2);
+    ctx.fill();
+    const spokes = 5 + Math.floor(rng() * 3);
+    for (let i = 0; i < spokes; i++) {
+      const angle = -Math.PI / 2 + ((i / (spokes - 1)) - 0.5) * Math.PI * 0.85;
+      const len = canopyR * 0.75;
+      this.drawTreeBranch(
+        ctx, cx, canopyCy + canopyR * 0.15,
+        cx + Math.cos(angle) * len, canopyCy + Math.sin(angle) * len + canopyR * 0.15,
+        '#4DB6AC', Math.max(0.8, w * 0.025)
+      );
+    }
+  }
+
+  static drawTreeOrchardPuffs(ctx, w, h, rng) {
+    const cx = w / 2;
+    const trunkTop = h * 0.55;
+    this.drawTreeTrunk(ctx, cx, trunkTop, h, Math.max(2, w * 0.1), '#4E342E');
+    this.drawTreeBranch(ctx, cx, trunkTop + 4, cx - w * 0.12, trunkTop - 2, '#5D4037', Math.max(1, w * 0.03));
+    this.drawTreeBranch(ctx, cx, trunkTop + 4, cx + w * 0.14, trunkTop - 4, '#5D4037', Math.max(1, w * 0.03));
+    this.drawTreeBranch(ctx, cx, trunkTop + 8, cx, trunkTop - 6, '#5D4037', Math.max(1, w * 0.03));
+    const puffR = w * 0.14;
+    const puffs = [
+      [-w * 0.18, trunkTop - h * 0.22, puffR],
+      [w * 0.16, trunkTop - h * 0.24, puffR * 0.95],
+      [-w * 0.05, trunkTop - h * 0.34, puffR * 1.05],
+      [w * 0.05, trunkTop - h * 0.38, puffR],
+      [-w * 0.22, trunkTop - h * 0.12, puffR * 0.85],
+      [w * 0.2, trunkTop - h * 0.14, puffR * 0.8]
+    ];
+    this.drawTreePuffs(ctx, cx, 0, puffs, '#2E7D32');
+    ctx.fillStyle = '#FFEB3B';
+    for (const [ox, oy] of puffs) {
+      if (rng() > 0.35) {
         ctx.beginPath();
-        ctx.arc(tx, ty, size, 0, Math.PI * 2);
+        ctx.arc(cx + ox + (rng() - 0.5) * puffR * 0.4, oy + (rng() - 0.5) * puffR * 0.3, Math.max(1, w * 0.04), 0, Math.PI * 2);
         ctx.fill();
       }
     }
+  }
+
+  static drawTreeLobedForest(ctx, w, h, rng) {
+    const cx = w / 2;
+    const trunkTop = h * 0.52;
+    this.drawTreeTrunk(ctx, cx, trunkTop, h, Math.max(2, w * 0.11), '#4E342E');
+    for (const [dx, dy, len] of [[-0.14, -0.08, 0.18], [0.16, -0.1, 0.2], [-0.08, -0.18, 0.16], [0.1, -0.2, 0.18]]) {
+      this.drawTreeBranch(ctx, cx, trunkTop + 2, cx + w * dx, trunkTop - h * dy, '#3E2723', Math.max(1, w * 0.035));
+    }
+    this.drawTreeScallop(ctx, cx, trunkTop - 4, w * 0.48, h * 0.42, 5, '#1B5E20');
+    this.drawTreeScallop(ctx, cx - w * 0.02, trunkTop - 8, w * 0.44, h * 0.36, 5, '#2E7D32');
+  }
+
+  static drawTreePillDots(ctx, w, h, rng) {
+    const cx = w / 2;
+    const trunkTop = h * 0.55;
+    const canopyW = w * 0.52;
+    const canopyH = h * 0.38;
+    const canopyTop = trunkTop - canopyH;
+    // Flared trunk
+    ctx.fillStyle = '#1B4332';
+    ctx.beginPath();
+    ctx.moveTo(cx - w * 0.06, h);
+    ctx.lineTo(cx + w * 0.06, h);
+    ctx.lineTo(cx + w * 0.04, trunkTop);
+    ctx.lineTo(cx - w * 0.04, trunkTop);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#95D5B2';
+    ctx.beginPath();
+    ctx.moveTo(cx - canopyW / 2, trunkTop);
+    ctx.lineTo(cx + canopyW / 2, trunkTop);
+    ctx.arc(cx, canopyTop + canopyH * 0.35, canopyW / 2, 0, Math.PI, true);
+    ctx.closePath();
+    ctx.fill();
+    this.drawTreeBranch(ctx, cx, trunkTop, cx, canopyTop + canopyH * 0.2, '#1B4332', Math.max(0.8, w * 0.02));
+    ctx.fillStyle = '#2D6A4F';
+    const dotCount = 4 + Math.floor(rng() * 5);
+    for (let i = 0; i < dotCount; i++) {
+      ctx.beginPath();
+      ctx.arc(
+        cx + (rng() - 0.5) * canopyW * 0.7,
+        canopyTop + canopyH * 0.25 + rng() * canopyH * 0.45,
+        Math.max(0.8, w * 0.025),
+        0, Math.PI * 2
+      );
+      ctx.fill();
+    }
+  }
+
+  static drawTreeTealBush(ctx, w, h, rng) {
+    const cx = w / 2;
+    const trunkTop = h * 0.62;
+    this.drawTreeTrunk(ctx, cx, trunkTop, h, Math.max(2, w * 0.07), '#5D4037');
+    for (const dir of [-0.12, 0, 0.12]) {
+      this.drawTreeBranch(ctx, cx, trunkTop + 2, cx + w * dir, trunkTop - 4, '#4E342E', Math.max(0.8, w * 0.025));
+    }
+    this.drawTreeScallop(ctx, cx, trunkTop - 2, w * 0.38, h * 0.22, 3, '#00897B');
+    ctx.fillStyle = '#B2DFDB';
+    for (let i = 0; i < 5; i++) {
+      ctx.beginPath();
+      ctx.arc(cx + (rng() - 0.5) * w * 0.3, trunkTop - h * 0.18 + rng() * h * 0.08, Math.max(0.6, w * 0.02), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  static drawTreeGeoConifer(ctx, w, h, rng) {
+    const cx = w / 2;
+    const trunkTop = h * 0.58;
+    const canopyR = Math.min(w, h) * 0.36;
+    const canopyCy = trunkTop - canopyR * 0.5;
+    ctx.fillStyle = '#26A69A';
+    ctx.beginPath();
+    ctx.arc(cx, canopyCy, canopyR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#00695C';
+    ctx.beginPath();
+    ctx.moveTo(cx - w * 0.08, h);
+    ctx.lineTo(cx + w * 0.08, h);
+    ctx.lineTo(cx + w * 0.02, canopyCy + canopyR * 0.35);
+    ctx.lineTo(cx, canopyCy - canopyR * 0.15);
+    ctx.lineTo(cx - w * 0.02, canopyCy + canopyR * 0.35);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  static drawTreeSpikyEvergreen(ctx, w, h, rng) {
+    const cx = w / 2;
+    const trunkTop = h * 0.48;
+    this.drawTreeTrunk(ctx, cx, trunkTop, h, Math.max(2, w * 0.09), '#8D6E63');
+    const steps = 4;
+    const topY = h * 0.06;
+    ctx.fillStyle = '#43A047';
+    ctx.beginPath();
+    ctx.moveTo(cx, topY);
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const y = topY + (trunkTop - topY) * t;
+      const halfW = w * (0.08 + t * 0.38);
+      if (i % 2 === 0) {
+        ctx.lineTo(cx + halfW, y);
+        ctx.lineTo(cx + halfW * 0.85, y + (trunkTop - topY) / steps * 0.55);
+      } else {
+        ctx.lineTo(cx - halfW, y);
+        ctx.lineTo(cx - halfW * 0.85, y + (trunkTop - topY) / steps * 0.55);
+      }
+    }
+    ctx.lineTo(cx - w * 0.08, trunkTop);
+    ctx.lineTo(cx + w * 0.08, trunkTop);
+    ctx.closePath();
+    ctx.fill();
+    for (const dir of [-1, 1]) {
+      this.drawTreeBranch(ctx, cx, trunkTop - 2, cx + dir * w * 0.12, trunkTop - h * 0.18, '#6D4C41', Math.max(0.8, w * 0.025));
+    }
+  }
+
+  static drawTreeSlenderPoplar(ctx, w, h, rng) {
+    const cx = w / 2;
+    const trunkTop = h * 0.72;
+    this.drawTreeTrunk(ctx, cx, trunkTop, h, Math.max(1.5, w * 0.06), '#1B4332');
+    const canopyH = h * 0.62;
+    const canopyW = w * 0.28;
+    ctx.fillStyle = '#A5D6A7';
+    ctx.beginPath();
+    ctx.moveTo(cx, h * 0.04);
+    ctx.bezierCurveTo(cx + canopyW, h * 0.18, cx + canopyW * 0.85, trunkTop - 4, cx, trunkTop);
+    ctx.bezierCurveTo(cx - canopyW * 0.85, trunkTop - 4, cx - canopyW, h * 0.18, cx, h * 0.04);
+    ctx.closePath();
+    ctx.fill();
+    for (let i = 0; i < 3; i++) {
+      const y = trunkTop - (trunkTop - h * 0.12) * (i / 3);
+      this.drawTreeBranch(ctx, cx, y, cx + w * 0.1, y - 2, '#2D6A4F', Math.max(0.6, w * 0.02));
+      this.drawTreeBranch(ctx, cx, y, cx - w * 0.1, y - 2, '#2D6A4F', Math.max(0.6, w * 0.02));
+    }
+  }
+
+  static drawTreeYellowAutumn(ctx, w, h, rng) {
+    const cx = w / 2;
+    const trunkTop = h * 0.68;
+    this.drawTreeTrunk(ctx, cx, trunkTop, h, Math.max(2, w * 0.08), '#5D4037');
+    this.drawTreeBranch(ctx, cx, trunkTop + 2, cx - w * 0.08, trunkTop - 4, '#4E342E', Math.max(0.8, w * 0.025));
+    this.drawTreeBranch(ctx, cx, trunkTop + 2, cx + w * 0.08, trunkTop - 4, '#4E342E', Math.max(0.8, w * 0.025));
+    this.drawTreeScallop(ctx, cx, trunkTop - 2, w * 0.32, h * 0.24, 3, '#FDD835');
+  }
+
+  /** Solid canopy backing — blocks parallax bleed-through puff/scallop gaps */
+  static drawTreeOpaqueUnderlay(ctx, w, h) {
+    const cx = w / 2;
+    ctx.save();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#1B5E20';
+    ctx.beginPath();
+    ctx.ellipse(cx, h * 0.36, w * 0.49, h * 0.4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  /** Force every painted canopy pixel to alpha 255 (no fringe bleed on parallax) */
+  static flattenTreeAlpha(ctx, w, h) {
+    const img = ctx.getImageData(0, 0, w, h);
+    const d = img.data;
+    for (let i = 3; i < d.length; i += 4) {
+      if (d[i] > 0) d[i] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+
+  // Generate a tree — picks one of several flat vector styles from seed
+  static generateTree(canvas, width, height, seed = Math.random()) {
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, width, height);
+    ctx.globalAlpha = 1;
+
+    const rng = this.seededRandom(seed);
+    const style = this.TREE_STYLES[Math.floor(rng() * this.TREE_STYLES.length)];
+    const drawers = {
+      fluffyOak: this.drawTreeFluffyOak,
+      radialCircle: this.drawTreeRadialCircle,
+      orchardPuffs: this.drawTreeOrchardPuffs,
+      lobedForest: this.drawTreeLobedForest,
+      pillDots: this.drawTreePillDots,
+      tealBush: this.drawTreeTealBush,
+      geoConifer: this.drawTreeGeoConifer,
+      spikyEvergreen: this.drawTreeSpikyEvergreen,
+      slenderPoplar: this.drawTreeSlenderPoplar,
+      yellowAutumn: this.drawTreeYellowAutumn
+    };
+    this.drawTreeOpaqueUnderlay(ctx, width, height);
+    drawers[style].call(this, ctx, width, height, rng);
+    this.flattenTreeAlpha(ctx, width, height);
+    ctx.globalAlpha = 1;
 
     return canvas;
   }
@@ -312,9 +641,15 @@ export class ProceduralGen {
     const darkBlue = inv('#004C99');
     const brown = inv('#5D4037');
 
-    const legSwing = [0, 3, 0, -3][frame % 4];
+    const leftLift = [0, -3, 0, 3][frame % 4];
+    const rightLift = [3, 0, -3, 0][frame % 4];
     const armSwing = [0, -4, 0, 4][frame % 4];
     const lean = isRunning ? 2 : 0;
+    const leftLegX = 9;
+    const rightLegX = 20;
+    const legW = 6;
+    const shoeH = 5;
+    const footBase = height - 2;
 
     // Shadow under feet
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
@@ -322,20 +657,28 @@ export class ProceduralGen {
     ctx.ellipse(width / 2, height - 1, 12, 3, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Shoes
-    ctx.fillStyle = brown;
-    ctx.fillRect(5 + legSwing, height - 6, 11, 5);
-    ctx.fillRect(16 - legSwing, height - 6, 11, 5);
-    ctx.fillStyle = inv('#3E2723');
-    ctx.fillRect(5 + legSwing, height - 2, 11, 2);
-    ctx.fillRect(16 - legSwing, height - 2, 11, 2);
-
-    // Overalls / pants
+    // Overalls / pants (upper)
     const pantsGrad = ctx.createLinearGradient(0, 38, 0, height);
     pantsGrad.addColorStop(0, blue);
     pantsGrad.addColorStop(1, darkBlue);
     ctx.fillStyle = pantsGrad;
     ctx.fillRect(8, 38, 16, 12);
+
+    // Legs — vertical under torso; alternate lift for walk cycle
+    ctx.fillStyle = darkBlue;
+    for (const [legX, lift] of [[leftLegX, leftLift], [rightLegX, rightLift]]) {
+      const legTop = 50 + Math.max(0, lift);
+      const shoeTop = footBase - shoeH + lift;
+      ctx.fillRect(legX, legTop, legW, Math.max(2, shoeTop - legTop));
+    }
+
+    // Shoes
+    ctx.fillStyle = brown;
+    ctx.fillRect(leftLegX - 1, footBase - shoeH + leftLift, legW + 2, shoeH);
+    ctx.fillRect(rightLegX - 1, footBase - shoeH + rightLift, legW + 2, shoeH);
+    ctx.fillStyle = inv('#3E2723');
+    ctx.fillRect(leftLegX - 1, footBase - 2 + leftLift, legW + 2, 2);
+    ctx.fillRect(rightLegX - 1, footBase - 2 + rightLift, legW + 2, 2);
 
     // Torso
     const bodyGrad = ctx.createLinearGradient(0, 22, 0, 40);
@@ -404,6 +747,38 @@ export class ProceduralGen {
     ctx.strokeStyle = 'rgba(0,0,0,0.35)';
     ctx.lineWidth = 1;
     ctx.strokeRect(8 + lean, 22, 16, 18);
+
+    return canvas;
+  }
+
+  // SMB-style brick block for floating platforms
+  static generateBlock(canvas, size, seed = Math.random()) {
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, size, size);
+
+    const brick = '#C84B00';
+    const brickDark = '#8B3200';
+    const mortar = '#5C3317';
+    const highlight = '#E07030';
+
+    ctx.fillStyle = brick;
+    ctx.fillRect(0, 0, size, size);
+    ctx.strokeStyle = mortar;
+    ctx.lineWidth = 1;
+
+    const rowH = size / 4;
+    for (let row = 0; row < 4; row++) {
+      const y = row * rowH;
+      const offset = row % 2 === 0 ? 0 : size / 4;
+      for (let x = -size / 4; x < size; x += size / 2) {
+        ctx.strokeRect(x + offset + 0.5, y + 0.5, size / 2 - 1, rowH - 1);
+      }
+    }
+
+    ctx.fillStyle = highlight;
+    ctx.fillRect(1, 1, size - 2, 2);
+    ctx.fillStyle = brickDark;
+    ctx.fillRect(1, size - 3, size - 2, 2);
 
     return canvas;
   }

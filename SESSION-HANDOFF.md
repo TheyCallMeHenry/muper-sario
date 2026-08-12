@@ -1,26 +1,32 @@
 # SESSION-HANDOFF — Muper Sario 2.0
 
-> **Updated:** 2026-08-12 PM  
+> **Updated:** 2026-08-12 late evening (Phase 10b research + full doc sync)  
 > **Repo:** https://github.com/TheyCallMeHenry/muper-sario · **Live:** https://theycallmehenry.github.io/muper-sario/
 
 ## Read first
 
-1. `docs/DOC-INDEX.md` 2. `DESIGN.md` 3. `docs/RESEARCH-NOTES.md` 4. `docs/QA-FINDINGS.md`
+1. `docs/DOC-INDEX.md` 2. `DESIGN.md` 3. `docs/RESEARCH-NOTES.md` § Phase 10b
 
 ## Current phase
 
 | Phase | Status |
 |-------|--------|
-| 0–7 Build, physics, scoring | ✅ Complete |
-| **4b Deploy (GitHub Pages)** | ✅ Complete |
+| 0–10 Procedural rogue-lite levels | ✅ Complete |
+| **10b Parallax opacity + par-time research** | 🔬 Research complete · **fixes pending** |
+| **Docs full sync (Phase 10b)** | ✅ Complete |
 
 ## Shipped state
 
-- **20** modules · test **20/20** local + Pages
-- Level: 4800 px · 2 pits · 11 pipes · 25 coins · 6 Bubas · flag 4720 · par 90 s
-- Score: +1 coin/stomp · win `round(base × clamp(90/t, 0.5, 2.0))`
-- Physics: SMB run+jump · coyote 0.15/0.22 s · Left Shift run
-- BGM `assets/music/background.wav` committed · Pages from `main` · `GameEngine.js?v=3`
+- **23** modules · test **23/23** local
+- **26** chunks · **12**/run → 4800 px · `?seed=N` reproducible
+- Cache bust: `GameEngine.js?v=4`
+- SMB scale: player 48 px · pipe 96 px · platform y=404
+
+## Open (do not mark done)
+
+1. **Tree opacity** — revert `drawTreeOpaqueUnderlay` / `flattenTreeAlpha`; fix per-style solid silhouettes (see RESEARCH-NOTES §10b)
+2. **Par time revamp** — implement ground-path hybrid formula (research done; not coded)
+3. Remove interim green-oval tree hack before deploy
 
 ## Commands
 
@@ -30,12 +36,9 @@ cd D:\Apps\Muper_Sario_2.0
 Get-ChildItem -Recurse src -Filter *.js | ForEach-Object { node --check $_.FullName }
 ```
 
-## Next
-
-1. Level 2 / tuning via `levelData.js`
-2. Optional: in-game elapsed timer HUD
-3. Bump `?v=` after entry-script changes
+http://localhost:38473/?seed=42 — regression layout · **Ctrl+F5** after module edits
 
 ## Do not
 
-- Patch v1 · port **38472** · spawn timer · v1 GameScene/Pipe wholesale copy
+- Patch v1 · port **38472** · revert to monolithic LEVEL_1 at runtime
+- Use generic green oval underlays for tree opacity (rejected approach)

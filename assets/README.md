@@ -22,7 +22,21 @@ Music loads **only when gameplay starts**, via `HTMLAudioElement` with `loop: tr
 
 ## Art
 
-Gameplay sprites are **100% procedural** (`ProceduralGen.js`). Only BGM uses binary assets in v2.
+Gameplay sprites are **100% procedural** (`ProceduralGen.js`) — player, pipes, **blocks**, coins, Bubas, trees, mountains, clouds, ground. Only BGM uses binary assets in v2.
+
+### Design reference images (`examples/`)
+
+These files informed procedural art generation. They are **not** loaded at runtime.
+
+| File | Used for |
+|------|----------|
+| `examples/hand-drawn-trees-collection-set-illustration-for-infographic-or-other-uses-vector.webp` | 10 flat vector tree styles in `generateTree()` |
+| `examples/vector-generated-mountains-example.png` | Low-poly faceted mountains in `generateMountain()` |
+| `examples/` SMB 1-1 full-level panorama | Segment/chunk reference for Phase 10 PCG (buffer zones, pits, pipes, stairs) |
+
+When revising procedural art, compare against these references and update `ProceduralGen.js` — do not swap in raster sprites unless DESIGN.md is updated first.
+
+**Phase 10b note:** Tree opacity requires per-style solid silhouettes in `generateTree()` — not generic backing ovals. See [`docs/RESEARCH-NOTES.md`](../docs/RESEARCH-NOTES.md) § Phase 10b.
 
 ## GitHub Pages
 

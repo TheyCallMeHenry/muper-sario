@@ -3,7 +3,7 @@
 > **Purpose:** Surgical copy vs rewrite checklist for greenfield extraction  
 > **Source:** `D:\Apps\Laguna-S-2.1-MuperSario` (read-only)  
 > **Target:** `D:\Apps\Muper_Sario_2.0`  
-> **Updated:** 2026-08-12 — Phases 0–7 complete · deployed · docs synced
+> **Updated:** 2026-08-12 — Phases 0–10 complete · Phase 10b research · docs synced
 
 Execute in order. **Do not copy** files marked REWRITE.
 
@@ -48,7 +48,77 @@ Integration, QA, polish, side-scroll level, UX, mute, Left Shift run — see [`P
 
 - GitHub: https://github.com/TheyCallMeHenry/muper-sario
 - Pages: https://theycallmehenry.github.io/muper-sario/ (branch `main`, path `/`)
-- Cache bust: `GameEngine.js?v=3`
+- Cache bust: `GameEngine.js?v=4`
+
+---
+
+## Phase 8 — Art + Buba hardening ✅
+
+| Change | Module |
+|--------|--------|
+| 10 flat vector tree styles | `ProceduralGen.js` |
+| Low-poly mountains + silhouette fix | `ProceduralGen.js` |
+| Buba stomp band + two-pass collision | `Buba.js`, `GameScene.js` |
+| Design reference images | `assets/examples/` |
+| Full doc sync | all `docs/`, README, DESIGN, AGENTS, SESSION-HANDOFF |
+
+---
+
+## Phase 9 — Level polish ✅
+
+| Change | Module |
+|--------|--------|
+| Vertical leg walk cycle | `ProceduralGen.generatePlayer()` |
+| Opaque parallax trees (compositor) | `Background.js` — sprite bake fix pending Phase 10b |
+| `Block.js` entity | `src/entities/Block.js` (new) |
+| `generateBlock()` | `ProceduralGen.js` |
+| Floating platforms in level | `levelData.js`, `GameScene.js` |
+| Buba block patrol | `Buba.js` |
+| test.html +1 module | `Block.js` → **21** modules |
+
+---
+
+## Phase 9b — SMB scale ✅
+
+| Change | Module |
+|--------|--------|
+| Pipe height 96 px (2× player) | `gameConfig.js` |
+| Coin float 20 px; min pipe gap 48 px | `gameConfig.js`, `levelData.js` |
+| Platform row y = 404 (3 blocks) | `levelData.js` |
+| Coin X reposition pass | `levelData.js` |
+| SMB scale documentation | `RESEARCH-NOTES.md`, `DOC-INDEX.md`, `DESIGN.md` |
+
+---
+
+## Phase 10 — Procedural rogue-lite levels ✅
+
+| Change | Module |
+|--------|--------|
+| 26 socket-matched chunks | `levelChunks.js` (new) |
+| Seeded level assembly + validation | `LevelGenerator.js` (new) |
+| Run factory + legacy LEVEL_1 | `levelData.js` |
+| Procedural load on enter + seed URL | `GameScene.js` |
+| PCG research documentation | `RESEARCH-NOTES.md`, `DOC-INDEX.md` |
+| Architecture lock | `DESIGN.md` |
+| test.html +2 imports | **23** modules |
+| Full doc sync | all project markdown |
+
+---
+
+## Phase 10b — Parallax opacity + par-time research (2026-08-12 late evening)
+
+| Change | Module / doc |
+|--------|----------------|
+| Web research + root-cause analysis | `RESEARCH-NOTES.md` §10b |
+| QA bugs #33–35, troubleshooting log | `QA-FINDINGS.md` |
+| Interim underlay attempt (**reject before deploy**) | `ProceduralGen.js` — revert pending |
+| TitleScene compositor alpha fix | `TitleScene.js` |
+| Background save/restore | `Background.js` |
+| Cache bust v=4 | `index.html` |
+| Hybrid par-time spec (not coded) | `RESEARCH-NOTES.md`, `DESIGN.md` |
+| Full doc sync | all project markdown |
+
+**Pending implementation:** per-style tree silhouettes; revert underlay/flatten; ground-path `parTimeSeconds`.
 
 ---
 
@@ -58,6 +128,6 @@ Integration, QA, polish, side-scroll level, UX, mute, Left Shift run — see [`P
 Get-ChildItem -Recurse src -Filter *.js | ForEach-Object { node --check $_.FullName }
 ```
 
-http://localhost:38473/test.html → **20 passed, 0 failed**
+http://localhost:38473/test.html → **23 passed, 0 failed**
 
 Live: https://theycallmehenry.github.io/muper-sario/test.html
